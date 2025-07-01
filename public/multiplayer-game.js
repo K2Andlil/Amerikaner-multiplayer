@@ -5,12 +5,10 @@ class MultiplayerGameClient {
         this.playerId = null;
         this.lastStateSequence = -1; // Track state updates
         this.pendingActions = new Set(); // Track pending actions
-        this.existingCards = new Map(); // Track existing cards to prevent redraw
         
         this.initializeFromStorage();
         this.setupSocketListeners();
         this.setupEventListeners();
-        this.createTeamTricksDisplay();
     }
 
     initializeFromStorage() {
@@ -53,160 +51,6 @@ class MultiplayerGameClient {
         // Clean up storage
         localStorage.removeItem('gameState');
         localStorage.removeItem('playerInfo');
-    }
-
-    createTeamTricksDisplay() {
-        // Create team tricks display element
-        const teamDisplay = document.createElement('div');
-        teamDisplay.id = 'team-tricks-display';
-        teamDisplay.className = 'team-tricks-display hidden';
-        teamDisplay.innerHTML = `
-            <div class="team-tricks-row">
-                <span>Budgivere:</span>
-                <span class="team-bidder-tricks" id="bidder-tricks">0</span>
-            </div>
-            <div class="team-tricks-row">
-                <span>Motstandere:</span>
-                <span class="team-opponent-tricks" id="opponent-tricks">0</span>
-            </div>
-        `;
-        document.body.appendChild(teamDisplay);
-    }
-
-    // Method to arrange players in play order
-    arrangePlayersInOrder() {
-        if (!this.gameState || this.playerId === null) return;
-
-        // Calculate the play order starting from current player
-        const playOrder = [];
-        for (let i = 1; i <= 3; i++) {
-            playOrder.push((this.playerId + i) % 4);
-        }
-
-        // Update player sections with correct data
-        playOrder.forEach((playerId, index) => {
-            const playerSection = document.getElementById(`next-player-${index + 1}`);
-            const player = this.gameState.players[playerId];
-            
-            if (player && playerSection) {
-                // Update player name
-                const nameElement = playerSection.querySelector('.player-name');
-                nameElement.textContent = player.name;
-                
-                // Update stats
-                const tricksElement = playerSection.querySelector('.tricks');
-                const scoreElement = playerSection.querySelector('.score');
-                tricksElement.textContent = this.gameState.tricksWon[playerId] || 0;
-                scoreElement.textContent = this.gameState.scores[playerId] || 0;
-                
-                // Update card count
-                const cardCountElement = playerSection.querySelector('.card-count-display');
-                const cardCount = this.gameState.hands[playerId] ? this.gameState.hands[playerId].length : 13;
-                cardCountElement.textContent = cardCount;
-                
-                // Store player ID for reference
-                playerSection.dataset.playerId = playerId;
-                
-                // Update team styling and highlighting
-                this.updatePlayerSectionStyling(playerSection, playerId);
-            }
-        });
-
-        // Update your own section
-        this.updateMyPlayerSection();
-    }
-
-    updatePlayerSectionStyling(playerSection, playerId) {
-        // Clear existing classes
-        playerSection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
-        
-        // Add current player/bidder highlighting
-        if (this.gameState.phase === 'bidding' && this.gameState.currentBidder === playerId) {
-            playerSection.classList.add('current-bidder');
-        } else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && this.gameState.currentPlayer === playerId) {
-            playerSection.classList.add('current-player');
-        }
-        
-        // Add team styling
-        const teamIndicator = playerSection.querySelector('.team-indicator');
-        if (this.gameState.teams[playerId]) {
-            teamIndicator.classList.remove('hidden');
-            teamIndicator.classList.remove('bidder', 'partner', 'opponent');
-            
-            if (this.gameState.teams[playerId] === 'bidder') {
-                teamIndicator.textContent = 'Budgiver';
-                teamIndicator.classList.add('bidder');
-                playerSection.classList.add('team-bidder');
-            } else if (this.gameState.teams[playerId] === 'partner') {
-                teamIndicator.textContent = 'Partner';
-                teamIndicator.classList.add('partner');
-                playerSection.classList.add('team-partner');
-            } else if (this.gameState.teams[playerId] === 'opponent') {
-                teamIndicator.textContent = 'Motstander';
-                teamIndicator.classList.add('opponent');
-                playerSection.classList.add('team-opponent');
-            }
-        } else {
-            teamIndicator.classList.add('hidden');
-        }
-    }
-
-    updateMyPlayerSection() {
-        const mySection = document.getElementById('my-player-section');
-        const myHandContainer = document.getElementById('my-hand-cards');
-        
-        if (!mySection || this.playerId === null) return;
-        
-        // Update my player name and stats
-        const nameElement = mySection.querySelector('.player-name');
-        const tricksElement = mySection.querySelector('.tricks');
-        const scoreElement = mySection.querySelector('.score');
-        
-        const myPlayer = this.gameState.players[this.playerId];
-        if (myPlayer) {
-            nameElement.textContent = `${myPlayer.name} (Du)`;
-        }
-        
-        tricksElement.textContent = this.gameState.tricksWon[this.playerId] || 0;
-        scoreElement.textContent = this.gameState.scores[this.playerId] || 0;
-        
-        // Update my cards
-        if (this.gameState.hands[this.playerId]) {
-            this.updatePlayerCards(this.playerId, myHandContainer, this.gameState.hands[this.playerId]);
-        }
-        
-        // Update team styling for my section
-        const myTeamIndicator = document.getElementById('my-team-indicator');
-        mySection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
-        
-        // Add current player/bidder highlighting
-        if (this.gameState.phase === 'bidding' && this.gameState.currentBidder === this.playerId) {
-            mySection.classList.add('current-bidder');
-        } else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && this.gameState.currentPlayer === this.playerId) {
-            mySection.classList.add('current-player');
-        }
-        
-        // Add team styling
-        if (this.gameState.teams[this.playerId]) {
-            myTeamIndicator.classList.remove('hidden');
-            myTeamIndicator.classList.remove('bidder', 'partner', 'opponent');
-            
-            if (this.gameState.teams[this.playerId] === 'bidder') {
-                myTeamIndicator.textContent = 'Budgiver';
-                myTeamIndicator.classList.add('bidder');
-                mySection.classList.add('team-bidder');
-            } else if (this.gameState.teams[this.playerId] === 'partner') {
-                myTeamIndicator.textContent = 'Partner';
-                myTeamIndicator.classList.add('partner');
-                mySection.classList.add('team-partner');
-            } else if (this.gameState.teams[this.playerId] === 'opponent') {
-                myTeamIndicator.textContent = 'Motstander';
-                myTeamIndicator.classList.add('opponent');
-                mySection.classList.add('team-opponent');
-            }
-        } else {
-            myTeamIndicator.classList.add('hidden');
-        }
     }
 
     rejoinGame() {
@@ -379,7 +223,6 @@ class MultiplayerGameClient {
         this.updateControls();
         this.updateTrickArea();
         this.updatePlayerStats();
-        this.updateTeamTricksDisplay();
     }
 
     updatePhaseIndicator() {
@@ -402,82 +245,54 @@ class MultiplayerGameClient {
         document.getElementById('current-round').textContent = this.gameState.currentRound;
     }
 
-    updateTeamTricksDisplay() {
-        const teamDisplay = document.getElementById('team-tricks-display');
-        const bidderTricks = document.getElementById('bidder-tricks');
-        const opponentTricks = document.getElementById('opponent-tricks');
-        
-        if (this.gameState.teams && Object.keys(this.gameState.teams).length > 0) {
-            teamDisplay.classList.remove('hidden');
-            
-            if (this.gameState.teamTricks) {
-                bidderTricks.textContent = this.gameState.teamTricks.bidder || 0;
-                opponentTricks.textContent = this.gameState.teamTricks.opponent || 0;
-            } else {
-                bidderTricks.textContent = '0';
-                opponentTricks.textContent = '0';
-            }
-        } else {
-            teamDisplay.classList.add('hidden');
-        }
-    }
-
     updatePlayerHands() {
-        // Use the new layout system
-        this.arrangePlayersInOrder();
-    }
-
-    // NEW METHOD: Smarter card updating to prevent unnecessary redraws
-    updatePlayerCards(playerId, container, newCards) {
-        const existingKey = `player_${playerId}`;
-        const newCardsKey = JSON.stringify(newCards.map(c => ({suit: c.suit, rank: c.rank, hidden: c.hidden})));
-        
-        // Only redraw if cards actually changed
-        if (this.existingCards.get(existingKey) !== newCardsKey) {
-            // Clear container and redraw
-            container.innerHTML = '';
+        for (let playerId = 0; playerId < 4; playerId++) {
+            const handContainer = document.querySelector(`[data-player="${playerId}"]`);
+            handContainer.innerHTML = '';
             
-            newCards.forEach((card, index) => {
-                const cardElement = this.createCardElement(card, playerId);
-                container.appendChild(cardElement);
-            });
+            if (this.gameState.hands[playerId]) {
+                console.log(`Player ${playerId} hand:`, this.gameState.hands[playerId]);
+                this.gameState.hands[playerId].forEach((card, index) => {
+                    const cardElement = this.createCardElement(card, playerId);
+                    cardElement.style.animationDelay = `${index * 0.05}s`;
+                    handContainer.appendChild(cardElement);
+                });
+            }
             
-            // Update cache
-            this.existingCards.set(existingKey, newCardsKey);
-        } else {
-            // Cards haven't changed, just update playability
-            const existingCardElements = container.querySelectorAll('.card');
-            existingCardElements.forEach((cardElement, index) => {
-                if (index < newCards.length) {
-                    const card = newCards[index];
-                    this.updateCardPlayability(cardElement, card, playerId);
+            // Clear all highlighting first
+            const playerSection = document.getElementById(`player-${playerId}`);
+            playerSection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
+            
+            // Update player name
+            const playerNameElement = playerSection.querySelector('.player-name');
+            if (this.gameState.players[playerId]) {
+                playerNameElement.textContent = this.gameState.players[playerId].name;
+                if (playerId === this.playerId) {
+                    playerNameElement.textContent += ' (Du)';
                 }
-            });
+            }
+            
+            // Highlight current player or bidder based on phase
+            if (this.gameState.phase === 'bidding' && this.gameState.currentBidder === playerId) {
+                playerSection.classList.add('current-bidder');
+            } else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && this.gameState.currentPlayer === playerId) {
+                playerSection.classList.add('current-player');
+            }
+            
+            // Add team styling
+            if (this.gameState.teams[playerId]) {
+                if (this.gameState.teams[playerId] === 'bidder') {
+                    playerSection.classList.add('team-bidder');
+                } else if (this.gameState.teams[playerId] === 'partner') {
+                    playerSection.classList.add('team-partner');
+                } else if (this.gameState.teams[playerId] === 'opponent') {
+                    playerSection.classList.add('team-opponent');
+                }
+            }
         }
-    }
-
-    // NEW METHOD: Update card playability without redrawing
-    updateCardPlayability(cardElement, card, playerId) {
-        // Remove existing playability classes
-        cardElement.classList.remove('playable', 'forced');
         
-        if (!card.hidden) {
-            // Only make cards clickable if it's this player's turn and they own the card
-            if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
-                this.gameState.currentPlayer === playerId &&
-                playerId === this.playerId) {
-                cardElement.classList.add('playable');
-            }
-
-            // Special highlighting for partner's requested card
-            if (this.gameState.waitingForPartner && 
-                playerId === this.gameState.partnerId && 
-                this.gameState.trumpCardRequest &&
-                card.suit === this.gameState.trumpCardRequest.suit && 
-                card.rank === this.gameState.trumpCardRequest.rank) {
-                cardElement.classList.add('forced');
-            }
-        }
+        // Update team indicators
+        this.updateTeamIndicators();
     }
 
     updateTeamIndicators() {
@@ -716,8 +531,14 @@ class MultiplayerGameClient {
     }
 
     updatePlayerStats() {
-        // Stats are now updated through arrangePlayersInOrder() and updateMyPlayerSection()
-        // This method is kept for compatibility but doesn't need to do anything specific
+        for (let playerId = 0; playerId < 4; playerId++) {
+            const playerSection = document.getElementById(`player-${playerId}`);
+            const tricksSpan = playerSection.querySelector('.tricks');
+            const scoreSpan = playerSection.querySelector('.score');
+            
+            tricksSpan.textContent = this.gameState.tricksWon[playerId] || 0;
+            scoreSpan.textContent = this.gameState.scores[playerId] || 0;
+        }
     }
 
     updateRoundResults() {

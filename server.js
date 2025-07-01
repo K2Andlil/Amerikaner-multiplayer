@@ -58,9 +58,6 @@ class MultiplayerGame {
         this.partnerId = null;
         this.dealingInProgress = false;
         this.trickWinner = null;
-        this.allPlayersPassed = false;
-        this.biddingComplete = false;
-        this.consecutivePasses = 0;
         
         // Add sequence number for debugging
         this.stateSequence = 0;
@@ -133,20 +130,12 @@ class MultiplayerGame {
 
     async startGame() {
         if (!this.canStart()) return false;
-
+        
         this.gameStarted = true;
         this.deck = this.createDeck();
         await this.dealCards();
         this.startBidding();
-        
         console.log(`Game ${this.gameCode} started with players:`, this.players.map(p => `${p.id}:${p.name}`));
-        console.log(`Bidding phase started, current bidder: ${this.currentBidder}`);
-        console.log(`Game phase: ${this.phase}`); // Debug log
-        
-        // Ensure state is incremented and broadcast immediately
-        this.stateSequence++;
-        this.broadcastGameState();
-        
         return true;
     }
 
@@ -175,8 +164,9 @@ class MultiplayerGame {
 
         this.dealingInProgress = false;
         
-        // REMOVED: this.broadcastGameState(); 
-        // Let startGame() handle broadcasting after bidding setup
+        // Immediately broadcast the updated game state so players can see card backs
+        this.broadcastGameState();
+        
         console.log(`Cards dealt for game ${this.gameCode}`);
     }
 
@@ -187,29 +177,24 @@ class MultiplayerGame {
         this.passes = new Set();
         this.highestBid = 6;
         this.highestBidder = null;
-        this.allPlayersPassed = false;
-        this.biddingComplete = false;
-        this.consecutivePasses = 0;
         console.log(`Bidding started for game ${this.gameCode}, first bidder: ${this.currentBidder}`);
     }
 
     makeBid(playerId, bid) {
         console.log(`Player ${playerId} attempting bid ${bid}. Current bidder: ${this.currentBidder}, dealing: ${this.dealingInProgress}`);
         
-        if (playerId !== this.currentBidder || this.dealingInProgress || this.biddingComplete) {
-            console.log(`Bid rejected: wrong player, dealing in progress, or bidding complete`);
+        if (playerId !== this.currentBidder || this.dealingInProgress) {
+            console.log(`Bid rejected: wrong player or dealing in progress`);
             return false;
         }
 
         if (bid === 'pass') {
             this.passes.add(playerId);
-            this.consecutivePasses++;
-            console.log(`Player ${playerId} passed. Consecutive passes: ${this.consecutivePasses}`);
+            console.log(`Player ${playerId} passed`);
         } else if (bid > this.highestBid && bid >= 7 && bid <= 13) {
             this.bids[playerId] = bid;
             this.highestBid = bid;
             this.highestBidder = playerId;
-            this.consecutivePasses = 0; // Reset consecutive passes
             console.log(`Player ${playerId} bid ${bid} (new highest)`);
         } else {
             console.log(`Invalid bid ${bid} from player ${playerId}`);
@@ -221,18 +206,8 @@ class MultiplayerGame {
         this.currentBidder = (this.currentBidder + 1) % 4;
         console.log(`Bidder changed from ${oldBidder} to ${this.currentBidder}`);
 
-        // FIXED BIDDING LOGIC: Check if bidding is complete
-        const activePlayers = 4 - this.passes.size;
-        
-        // If 3 consecutive passes after a bid, winner is determined
-        // OR if maximum bid (13) is reached
-        // OR if all but one player has passed
-        if ((this.consecutivePasses >= 3 && this.highestBidder !== null) || 
-            this.highestBid === 13 ||
-            this.passes.size >= 3) {
-            
-            this.biddingComplete = true;
-            
+        // Check if bidding is complete
+        if (this.passes.size >= 3 || (Object.keys(this.bids).length + this.passes.size) >= 4) {
             if (this.highestBidder !== null) {
                 this.phase = 'playing';
                 this.currentPlayer = this.highestBidder;
@@ -458,11 +433,8 @@ class MultiplayerGame {
             this.phase = 'playing';
             this.trickWinner = null;
 
-            // FIXED: Check if round is complete - ensure all hands are empty
-            const allHandsEmpty = Object.values(this.hands).every(hand => hand.length === 0);
-            
-            if (allHandsEmpty) {
-                console.log('All hands empty, completing round');
+            // Check if round is complete
+            if (Object.values(this.hands).every(hand => hand.length === 0)) {
                 this.completeRound();
             } else {
                 this.stateSequence++;
@@ -513,8 +485,6 @@ class MultiplayerGame {
 
         this.phase = 'round_end';
         this.stateSequence++;
-        console.log('Round completed, broadcasting round_end state');
-        this.broadcastGameState();
     }
 
     async startNextRound() {
@@ -534,33 +504,10 @@ class MultiplayerGame {
         this.waitingForPartner = false;
         this.partnerId = null;
         this.trickWinner = null;
-        this.allPlayersPassed = false;
-        this.biddingComplete = false;
-        this.consecutivePasses = 0;
         
         await this.dealCards();
         this.startBidding();
         this.stateSequence++;
-    }
-
-    getTeamTricks() {
-        const teamTricks = {
-            bidder: 0,
-            opponent: 0
-        };
-        
-        if (this.teams && Object.keys(this.teams).length > 0) {
-            for (const [playerId, team] of Object.entries(this.teams)) {
-                const tricks = this.tricksWon[parseInt(playerId)] || 0;
-                if (team === 'bidder' || team === 'partner') {
-                    teamTricks.bidder += tricks;
-                } else if (team === 'opponent') {
-                    teamTricks.opponent += tricks;
-                }
-            }
-        }
-        
-        return teamTricks;
     }
 
     getGameStateForPlayer(playerId) {
@@ -610,10 +557,7 @@ class MultiplayerGame {
             dealingInProgress: this.dealingInProgress,
             playerId: playerId,
             stateSequence: this.stateSequence,
-            trickWinner: this.trickWinner,
-            teamTricks: this.getTeamTricks(),
-            biddingComplete: this.biddingComplete,
-            consecutivePasses: this.consecutivePasses
+            trickWinner: this.trickWinner
         };
     }
 
@@ -697,15 +641,15 @@ io.on('connection', (socket) => {
         console.log('Starting game:', playerInfo.gameCode, 'Players:', game.players.length);
 
         if (game.startGame()) {
-            console.log('Game started successfully, phase:', game.phase, 'current bidder:', game.currentBidder);
+            console.log('Game started successfully');
+            // Use the new broadcast method
+            game.broadcastGameState();
             
-            // Send gameStarted event to each player with their specific state
+            // Also send specific start event
             game.players.forEach(player => {
                 const playerSocket = io.sockets.sockets.get(player.socketId);
-                if (playerSocket && player.connected) {
-                    const playerState = game.getGameStateForPlayer(player.id);
-                    console.log(`Sending gameStarted to player ${player.id}, phase: ${playerState.phase}`);
-                    playerSocket.emit('gameStarted', playerState);
+                if (playerSocket) {
+                    playerSocket.emit('gameStarted', game.getGameStateForPlayer(player.id));
                 }
             });
         } else {
