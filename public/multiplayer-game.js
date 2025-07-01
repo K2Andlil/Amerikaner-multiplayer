@@ -574,9 +574,11 @@ class MultiplayerGameClient {
     createCardElement(card, playerId, clickable = true) {
         const cardDiv = document.createElement('div');
         
-        // Handle hidden cards (other players' cards)
+        // Handle hidden cards (other players' cards) - show card backs
         if (card.hidden) {
             cardDiv.className = 'card hidden';
+            // The CSS in game.html already handles the styling for .card.hidden
+            // It shows a card back with the 🂠 symbol
             return cardDiv;
         }
 

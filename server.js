@@ -514,7 +514,16 @@ class MultiplayerGame {
                 otherPlayerHands[i] = this.hands[i]; // Full hand for this player
             } else {
                 // Show hidden cards for other players (so you can see card backs)
-                otherPlayerHands[i] = this.hands[i] ? this.hands[i].map(() => ({hidden: true})) : [];
+                // Make sure to preserve the array length so UI shows correct number of cards
+                if (this.hands[i]) {
+                    otherPlayerHands[i] = this.hands[i].map(() => ({
+                        hidden: true,
+                        suit: 'hidden',
+                        rank: 0
+                    }));
+                } else {
+                    otherPlayerHands[i] = [];
+                }
             }
         }
 
