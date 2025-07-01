@@ -226,7 +226,8 @@ class MultiplayerGame {
         if (this.highestBid === 13 || this.passes.size >= 3) {
             if (this.highestBidder !== null) {
                 console.log(`Bidding complete! Winner: ${this.highestBidder} with bid ${this.highestBid}`);
-                this.phase = 'playing';
+                // Transition to trump selection phase
+                this.phase = 'trump_selection';
                 this.currentPlayer = this.highestBidder;
                 this.firstCardPlayed = false;
             } else {
@@ -245,6 +246,29 @@ class MultiplayerGame {
 
         // Increment state sequence for debugging
         this.stateSequence++;
+        return true;
+    }
+
+    selectTrumpSuit(playerId, trumpSuit) {
+        console.log(`Player ${playerId} selecting trump suit: ${trumpSuit}`);
+        
+        if (playerId !== this.highestBidder || this.phase !== 'trump_selection') {
+            console.log(`Trump selection rejected: wrong player or phase`);
+            return false;
+        }
+
+        // Valid suits
+        const validSuits = ['hearts', 'diamonds', 'clubs', 'spades'];
+        if (!validSuits.includes(trumpSuit)) {
+            console.log(`Invalid trump suit: ${trumpSuit}`);
+            return false;
+        }
+
+        this.trumpSuit = trumpSuit;
+        this.phase = 'partner_selection';
+        this.stateSequence++;
+        
+        console.log(`Trump suit set to ${trumpSuit}, moving to partner selection`);
         return true;
     }
 
@@ -304,7 +328,38 @@ class MultiplayerGame {
     playCard(playerId, cardData) {
         if (playerId !== this.currentPlayer || this.dealingInProgress) return false;
 
-        // Block card playing during partner selection phase
+        // Handle trump selection phase - bidder plays first card to set trump
+        if (this.phase === 'trump_selection' && playerId === this.highestBidder) {
+            // Find and remove card from player's hand
+            let cardToPlay = null;
+            for (let i = 0; i < this.hands[playerId].length; i++) {
+                const card = this.hands[playerId][i];
+                if (card.suit === cardData.suit && card.rank === cardData.rank) {
+                    cardToPlay = this.hands[playerId].splice(i, 1)[0];
+                    break;
+                }
+            }
+
+            if (!cardToPlay) return false;
+
+            // Set trump suit based on the first card played
+            this.trumpSuit = cardToPlay.suit;
+            this.firstCardPlayed = true;
+            this.leadSuit = cardToPlay.suit;
+            
+            this.currentTrick.push({
+                playerId: playerId,
+                card: cardToPlay,
+                playerName: this.players[playerId].name
+            });
+
+            this.phase = 'partner_selection';
+            this.stateSequence++;
+            console.log(`Trump suit set to ${this.trumpSuit} by first card played`);
+            return true;
+        }
+
+        // Block card playing during partner selection phase unless it's the trump setter
         if (this.phase === 'partner_selection') {
             return false;
         }
@@ -332,23 +387,6 @@ class MultiplayerGame {
         }
 
         if (!cardToPlay) return false;
-
-        // If this is the first card played by the bidder, set trump suit
-        if (!this.firstCardPlayed && playerId === this.highestBidder) {
-            this.trumpSuit = cardToPlay.suit;
-            this.firstCardPlayed = true;
-            this.leadSuit = cardToPlay.suit;
-            
-            this.currentTrick.push({
-                playerId: playerId,
-                card: cardToPlay,
-                playerName: this.players[playerId].name
-            });
-
-            this.phase = 'partner_selection';
-            this.stateSequence++;
-            return true;
-        }
 
         // If we're waiting for partner to play the requested card
         if (this.waitingForPartner && 
@@ -720,6 +758,18 @@ io.on('connection', (socket) => {
         } else {
             console.log('Bid failed');
             socket.emit('error', 'Invalid bid');
+        }
+    });
+
+    socket.on('selectTrumpSuit', (trumpSuit) => {
+        const playerInfo = playerSockets.get(socket.id);
+        if (!playerInfo) return;
+
+        const game = games.get(playerInfo.gameCode);
+        if (!game || playerInfo.playerId !== game.highestBidder) return;
+
+        if (game.selectTrumpSuit(playerInfo.playerId, trumpSuit)) {
+            game.broadcastGameState();
         }
     });
 

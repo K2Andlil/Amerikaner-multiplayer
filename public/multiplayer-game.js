@@ -235,6 +235,7 @@ class MultiplayerGameClient {
         const phaseNames = {
             'waiting': 'Venter på spillere',
             'bidding': 'Budgivning',
+            'trump_selection': 'Velg trumf',
             'partner_selection': 'Velg partner',
             'playing': 'Spilling',
             'trick_complete': 'Stikk ferdig',
@@ -380,8 +381,14 @@ class MultiplayerGameClient {
         // Remove existing classes
         cardElement.classList.remove('playable', 'forced');
         
-        // Only add playable class if it's this player's turn and they own the card
-        if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
+        // Trump selection phase - bidder can play any card
+        if (this.gameState.phase === 'trump_selection' && 
+            playerId === this.gameState.highestBidder &&
+            playerId === this.playerId) {
+            cardElement.classList.add('playable');
+        }
+        // Regular playing phases - only if it's this player's turn
+        else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
             this.gameState.currentPlayer === playerId &&
             playerId === this.playerId) {
             cardElement.classList.add('playable');
@@ -415,7 +422,7 @@ class MultiplayerGameClient {
         // Highlight current player or bidder based on phase
         if (this.gameState.phase === 'bidding' && this.gameState.currentBidder === playerId) {
             playerSection.classList.add('current-bidder');
-        } else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && this.gameState.currentPlayer === playerId) {
+        } else if ((this.gameState.phase === 'trump_selection' || this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && this.gameState.currentPlayer === playerId) {
             playerSection.classList.add('current-player');
         }
         
@@ -494,6 +501,10 @@ class MultiplayerGameClient {
             const currentBidderName = this.gameState.players[this.gameState.currentBidder]?.name || `Spiller ${this.gameState.currentBidder + 1}`;
             document.getElementById('current-bidder').textContent = currentBidderName;
             this.updateBidButtons();
+        } else if (this.gameState.phase === 'trump_selection' && this.playerId === this.gameState.highestBidder) {
+            console.log('Showing trump selection - player should play a card');
+            // Show message that player should play a card to set trump
+            this.showPopupMessage('Spill et kort for å sette trumf!');
         } else if (this.gameState.phase === 'partner_selection' && this.playerId === this.gameState.highestBidder) {
             console.log('Showing partner selection controls');
             document.getElementById('partner-controls').classList.remove('hidden');
@@ -746,14 +757,23 @@ class MultiplayerGameClient {
         }
 
         // Only make cards clickable if it's this player's turn and they own the card
-        if (clickable && 
-            (this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
-            playerId === this.gameState.currentPlayer &&
-            playerId === this.playerId) {
-            cardDiv.classList.add('playable');
-            cardDiv.addEventListener('click', () => {
-                this.socket.emit('playCard', {suit: card.suit, rank: card.rank});
-            });
+        if (clickable && playerId === this.playerId) {
+            // Trump selection phase - bidder can play any card to set trump
+            if (this.gameState.phase === 'trump_selection' && 
+                playerId === this.gameState.highestBidder) {
+                cardDiv.classList.add('playable');
+                cardDiv.addEventListener('click', () => {
+                    this.socket.emit('playCard', {suit: card.suit, rank: card.rank});
+                });
+            }
+            // Regular playing phase - only if it's player's turn
+            else if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
+                playerId === this.gameState.currentPlayer) {
+                cardDiv.classList.add('playable');
+                cardDiv.addEventListener('click', () => {
+                    this.socket.emit('playCard', {suit: card.suit, rank: card.rank});
+                });
+            }
         }
 
         const rankSymbols = {11: 'J', 12: 'Q', 13: 'K', 14: 'A'};
