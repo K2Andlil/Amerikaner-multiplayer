@@ -241,12 +241,6 @@ body {
     margin-bottom: 20px;
 }
 
-/* Make opponent sections smaller */
-.player-section:not(.my-player) {
-    min-height: 140px;
-    max-height: 180px;
-}
-
 /* Make my player section bigger */
 .player-section.my-player {
     grid-area: my-player;
@@ -748,7 +742,10 @@ body {
         "trick trick trick"
         "next1 next2 next3" !important;
     grid-template-columns: 1fr 1fr 1fr !important;
+    /* CHANGE THIS LINE: */
     grid-template-rows: 240px 1fr 180px !important;
+    /* TO THIS: */
+    grid-template-rows: 240px 1fr 200px !important;
     gap: 15px;
     margin-bottom: 20px;
     min-height: 75vh;
@@ -783,12 +780,12 @@ body {
     border-radius: 12px;
     padding: 12px;
     border: 2px solid rgba(255, 255, 255, 0.3) !important;
-    height: 160px !important;
+    height: 180px !important;
     position: relative;
     overflow: hidden;
     transition: all 0.3s ease;
     min-height: auto !important;
-    max-height: 160px !important;
+    max-height: 180px !important;
 }
 
 /* Turn order indicators on opponent boxes */

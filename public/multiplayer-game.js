@@ -716,14 +716,8 @@ class MultiplayerGameClient {
     }
 
     updatePlayerStats() {
-        for (let playerId = 0; playerId < 4; playerId++) {
-            const playerSection = document.getElementById(`player-${playerId}`);
-            const tricksSpan = playerSection.querySelector('.tricks');
-            const scoreSpan = playerSection.querySelector('.score');
-            
-            tricksSpan.textContent = this.gameState.tricksWon[playerId] || 0;
-            scoreSpan.textContent = this.gameState.scores[playerId] || 0;
-        }
+        // Stats are now updated through arrangePlayersInOrder() and updateMyPlayerSection()
+        // This method is kept for compatibility but doesn't need to do anything specific
     }
 
     updateRoundResults() {
