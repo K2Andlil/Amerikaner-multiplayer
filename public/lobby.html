@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amerikaner - Lobby</title>
+    <link rel="stylesheet" href="lobby.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🂡 Amerikaner 🂡</h1>
+        
+        <!-- Initial Form -->
+        <div id="initial-form" class="form-container">
+            <div class="form-group">
+                <label for="player-name">Ditt navn:</label>
+                <input type="text" id="player-name" placeholder="Skriv inn navnet ditt" maxlength="20">
+            </div>
+            
+            <div class="button-group">
+                <button class="btn" id="create-game">Opprett nytt spill</button>
+                <button class="btn secondary" id="join-game">Bli med i spill</button>
+            </div>
+        </div>
+
+        <!-- Join Game Form -->
+        <div id="join-form" class="form-container hidden">
+            <div class="form-group">
+                <label for="game-code">Spillkode:</label>
+                <input type="text" id="game-code" placeholder="Skriv inn spillkode" maxlength="6" style="text-transform: uppercase">
+            </div>
+            
+            <div class="button-group">
+                <button class="btn" id="join-game-btn">Bli med</button>
+                <button class="btn secondary" id="back-btn">Tilbake</button>
+            </div>
+        </div>
+
+        <!-- Lobby -->
+        <div id="lobby" class="lobby-info hidden">
+            <h2>Venter på spillere...</h2>
+            <div class="game-code">
+                Spillkode: <span id="current-game-code"></span>
+            </div>
+            <p>Del denne koden med andre spillere</p>
+            
+            <div class="players-list">
+                <h3>Spillere (<span id="player-count">0</span>/4):</h3>
+                <div id="players-container"></div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn" id="start-game-btn" disabled>Start spill</button>
+                <button class="btn secondary" id="leave-game">Forlat spill</button>
+            </div>
+        </div>
+
+        <!-- Messages -->
+        <div id="message" class="message hidden"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="lobby.js"></script>
+</body>
+</html>
