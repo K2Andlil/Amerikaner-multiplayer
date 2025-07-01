@@ -12,13 +12,13 @@ const io = socketIo(server, {
     }
 });
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Add this route to serve the lobby page at root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'lobby.html'));
+    res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
 });
+
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Game state management
 const games = new Map();
