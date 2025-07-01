@@ -226,7 +226,7 @@ class MultiplayerGameClient {
         indicator.textContent = phaseNames[this.gameState.phase] || this.gameState.phase;
     }
 
-    uupdateGameInfo() {
+    updateGameInfo() {
         document.getElementById('trump-display').textContent = this.gameState.trumpSuit ? 
             this.getSuitName(this.gameState.trumpSuit) : '-';
         

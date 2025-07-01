@@ -179,7 +179,7 @@ class MultiplayerGame {
     makeBid(playerId, bid) {
         console.log(`Player ${playerId} attempting bid ${bid}. Current bidder: ${this.currentBidder}, dealing: ${this.dealingInProgress}`);
         
-        if (playerId !== this.currentBidder || this.dealingInProgress) {
+        if (playerId !== this.currentBidder || this.dealingInProgress || this.phase !== 'bidding') {
             console.log(`Bid rejected: wrong player or dealing in progress`);
             return false;
         }
@@ -639,7 +639,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    socket.on('startGame', () => {
+    socket.on('startGame', async () => {
         const playerInfo = playerSockets.get(socket.id);
         if (!playerInfo) {
             console.log('No player info found for startGame');
