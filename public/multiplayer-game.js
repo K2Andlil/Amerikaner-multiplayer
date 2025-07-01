@@ -226,38 +226,87 @@ class MultiplayerGameClient {
         indicator.textContent = phaseNames[this.gameState.phase] || this.gameState.phase;
     }
 
-    updateGameInfo() {
+    uupdateGameInfo() {
         document.getElementById('trump-display').textContent = this.gameState.trumpSuit ? 
             this.getSuitName(this.gameState.trumpSuit) : '-';
+        
+        // Update team tricks display
+        document.getElementById('team-tricks').textContent = this.getTeamTricksDisplay();
+        
         document.getElementById('highest-bid').textContent = this.gameState.highestBidder !== null ? 
             this.gameState.highestBid : '-';
         document.getElementById('current-round').textContent = this.gameState.currentRound;
     }
 
+    getTeamTricksDisplay() {
+        if (!this.gameState.teams || Object.keys(this.gameState.teams).length === 0) {
+            return '-';
+        }
+        
+        // Calculate bidding team tricks
+        let biddingTeamTricks = 0;
+        let opponentTricks = 0;
+        
+        for (const [playerId, team] of Object.entries(this.gameState.teams)) {
+            const tricks = this.gameState.tricksWon[parseInt(playerId)] || 0;
+            if (team === 'bidder' || team === 'partner') {
+                biddingTeamTricks += tricks;
+            } else if (team === 'opponent') {
+                opponentTricks += tricks;
+            }
+        }
+        
+        // Show format: "Budlag: X | Motstandere: Y" or just the relevant team for current player
+        const myTeam = this.gameState.teams[this.playerId];
+        
+        if (myTeam === 'bidder' || myTeam === 'partner') {
+            return `${biddingTeamTricks}/${this.gameState.highestBid || 0}`;
+        } else if (myTeam === 'opponent') {
+            return `${opponentTricks}`;
+        } else {
+            // No teams set yet
+            return '-';
+        }
+    }
+
     updatePlayerHands() {
-        // Clear all player sections first
+        // Update main player (current user)
         const mainPlayerSection = document.getElementById('main-player');
         const mainHandContainer = mainPlayerSection.querySelector('[data-player="main"]');
-        mainHandContainer.innerHTML = '';
+        const mainPlayerId = this.playerId;
+        
+        // Only rebuild hand if the number of cards changed
+        const currentCardCount = mainHandContainer.children.length;
+        const newCardCount = this.gameState.hands[mainPlayerId]?.length || 0;
+        
+        if (currentCardCount !== newCardCount) {
+            mainHandContainer.innerHTML = '';
+            
+            // Display main player's cards
+            if (this.gameState.hands[mainPlayerId]) {
+                this.gameState.hands[mainPlayerId].forEach((card, index) => {
+                    const cardElement = this.createCardElement(card, mainPlayerId);
+                    cardElement.style.animationDelay = `${index * 0.05}s`;
+                    mainHandContainer.appendChild(cardElement);
+                });
+            }
+        } else {
+            // Just update the playable state of existing cards
+            const cardElements = mainHandContainer.querySelectorAll('.card');
+            cardElements.forEach((cardElement, index) => {
+                const card = this.gameState.hands[mainPlayerId][index];
+                if (card) {
+                    this.updateCardPlayableState(cardElement, card, mainPlayerId);
+                }
+            });
+        }
         
         // Clear highlighting
         mainPlayerSection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
         
-        // Update main player (current user)
-        const mainPlayerId = this.playerId;
+        // Update main player name and apply highlighting
         const mainPlayerName = this.gameState.players[mainPlayerId]?.name || 'Du';
         mainPlayerSection.querySelector('.player-name').textContent = `${mainPlayerName} (Du)`;
-        
-        // Display main player's cards
-        if (this.gameState.hands[mainPlayerId]) {
-            this.gameState.hands[mainPlayerId].forEach((card, index) => {
-                const cardElement = this.createCardElement(card, mainPlayerId);
-                cardElement.style.animationDelay = `${index * 0.05}s`;
-                mainHandContainer.appendChild(cardElement);
-            });
-        }
-        
-        // Apply highlighting to main player
         this.applyPlayerHighlighting(mainPlayerSection, mainPlayerId);
         
         // Update other players in turn order
@@ -266,23 +315,29 @@ class MultiplayerGameClient {
         otherPlayerOrder.forEach((actualPlayerId, index) => {
             const otherPlayerSection = document.getElementById(`other-player-${index + 1}`);
             const handContainer = otherPlayerSection.querySelector(`[data-player="other-${index + 1}"]`);
-            handContainer.innerHTML = '';
             
-            // Clear highlighting
+            // Only rebuild if card count changed
+            const currentOtherCardCount = handContainer.children.length;
+            const newOtherCardCount = this.gameState.hands[actualPlayerId]?.length || 0;
+            
+            if (currentOtherCardCount !== newOtherCardCount) {
+                handContainer.innerHTML = '';
+                
+                // Display cards (hidden for other players)
+                if (this.gameState.hands[actualPlayerId]) {
+                    this.gameState.hands[actualPlayerId].forEach((card, cardIndex) => {
+                        const cardElement = this.createCardElement(card, actualPlayerId);
+                        cardElement.style.animationDelay = `${cardIndex * 0.05}s`;
+                        handContainer.appendChild(cardElement);
+                    });
+                }
+            }
+            
+            // Clear highlighting and update player info
             otherPlayerSection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
             
-            // Update player name and stats
             const playerName = this.gameState.players[actualPlayerId]?.name || `Spiller ${actualPlayerId + 1}`;
             otherPlayerSection.querySelector('.player-name').textContent = playerName;
-            
-            // Display cards (hidden for other players)
-            if (this.gameState.hands[actualPlayerId]) {
-                this.gameState.hands[actualPlayerId].forEach((card, cardIndex) => {
-                    const cardElement = this.createCardElement(card, actualPlayerId);
-                    cardElement.style.animationDelay = `${cardIndex * 0.05}s`;
-                    handContainer.appendChild(cardElement);
-                });
-            }
             
             // Apply highlighting
             this.applyPlayerHighlighting(otherPlayerSection, actualPlayerId);
@@ -539,7 +594,9 @@ class MultiplayerGameClient {
                 trickArea.insertBefore(winnerMessage, playedCardsContainer);
             }
             
-            const winnerName = this.gameState.trickWinner?.playerName || 'Ukjent';
+            const winnerName = this.gameState.trickWinner?.playerName || 
+                  this.gameState.players[this.gameState.trickWinner?.playerId]?.name || 
+                  `Spiller ${(this.gameState.trickWinner?.playerId || 0) + 1}`;
             winnerMessage.textContent = `${winnerName} vant stikket!`;
             
             // Add countdown timer
@@ -613,12 +670,11 @@ class MultiplayerGameClient {
                 (this.gameState.players[this.gameState.partnerId]?.name || `Spiller ${this.gameState.partnerId + 1}`) : 'ingen';
             
             resultText = `${bidderName} (med ${partnerName}) budde ${this.gameState.highestBid} og tok ${biddingTeamTricks} stikk sammen. `;
-            resultText += success ? 'Maktet!' : 'Feilet!';
             
-            if (!success) {
-                resultText += ` (-${this.gameState.highestBid} poeng)`;
+            if (success) {
+                resultText += `Maktet! (+${this.gameState.highestBid} poeng)`;
             } else {
-                resultText += ` (+${this.gameState.highestBid} poeng)`;
+                resultText += `Feilet! (-${this.gameState.highestBid} poeng)`;
             }
         }
         

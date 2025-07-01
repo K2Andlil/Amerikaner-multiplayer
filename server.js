@@ -191,19 +191,27 @@ class MultiplayerGame {
             this.bids[playerId] = bid;
             this.highestBid = bid;
             this.highestBidder = playerId;
+            // Remove this player from passes if they were there (in case they bid after passing)
+            this.passes.delete(playerId);
             console.log(`Player ${playerId} bid ${bid} (new highest)`);
         } else {
             console.log(`Invalid bid ${bid} from player ${playerId}`);
             return false;
         }
 
-        // Move to next bidder
-        const oldBidder = this.currentBidder;
-        this.currentBidder = (this.currentBidder + 1) % 4;
-        console.log(`Bidder changed from ${oldBidder} to ${this.currentBidder}`);
+        // Move to next bidder, but skip players who have already passed
+        do {
+            this.currentBidder = (this.currentBidder + 1) % 4;
+        } while (this.passes.has(this.currentBidder) && this.passes.size < 3);
+
+        console.log(`Next bidder: ${this.currentBidder}`);
 
         // Check if bidding is complete
-        if (this.passes.size >= 3 || (Object.keys(this.bids).length + this.passes.size) >= 4) {
+        // Bidding ends when:
+        // 1. Someone bids 13 (maximum bid), OR
+        // 2. 3 players have passed (only 1 active bidder left), OR
+        // 3. All 4 players have passed
+        if (this.highestBid === 13 || this.passes.size >= 3) {
             if (this.highestBidder !== null) {
                 this.phase = 'playing';
                 this.currentPlayer = this.highestBidder;
@@ -453,7 +461,9 @@ class MultiplayerGame {
         }
 
         // Award points
-        if (biddingTeamTricks >= this.highestBid) {
+        const biddingSuccess = biddingTeamTricks >= this.highestBid;
+        
+        if (biddingSuccess) {
             // Bidding team succeeded - both get positive points
             for (const [playerId, team] of Object.entries(this.teams)) {
                 if (team === 'bidder' || team === 'partner') {
@@ -466,6 +476,7 @@ class MultiplayerGame {
                     this.scores[parseInt(playerId)] += this.tricksWon[parseInt(playerId)];
                 }
             }
+            console.log(`Bidding team succeeded: ${biddingTeamTricks}/${this.highestBid}`);
         } else {
             // Bidding team failed - get negative points
             for (const [playerId, team] of Object.entries(this.teams)) {
@@ -479,10 +490,26 @@ class MultiplayerGame {
                     this.scores[parseInt(playerId)] += this.tricksWon[parseInt(playerId)];
                 }
             }
+            console.log(`Bidding team failed: ${biddingTeamTricks}/${this.highestBid}`);
         }
+
+        // Store round results for display
+        this.roundResults = {
+            biddingTeamTricks,
+            requiredTricks: this.highestBid,
+            success: biddingSuccess,
+            bidderName: this.players[this.highestBidder]?.name || `Spiller ${this.highestBidder + 1}`,
+            partnerName: this.partnerId !== null ? 
+                (this.players[this.partnerId]?.name || `Spiller ${this.partnerId + 1}`) : 'ingen'
+        };
 
         this.phase = 'round_end';
         this.stateSequence++;
+        
+        console.log(`Round ${this.currentRound} complete. Scores:`, this.scores);
+        
+        // Broadcast the round end state immediately
+        this.broadcastGameState();
     }
 
     async startNextRound() {
@@ -543,7 +570,8 @@ class MultiplayerGame {
             partnerId: this.partnerId,
             dealingInProgress: this.dealingInProgress,
             playerId: playerId,
-            stateSequence: this.stateSequence  // Add for debugging
+            stateSequence: this.stateSequence,
+            roundResults: this.roundResults  // Add this line
         };
     }
 
