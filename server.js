@@ -163,6 +163,10 @@ class MultiplayerGame {
         });
 
         this.dealingInProgress = false;
+        
+        // Immediately broadcast the updated game state so players can see card backs
+        this.broadcastGameState();
+        
         console.log(`Cards dealt for game ${this.gameCode}`);
     }
 
