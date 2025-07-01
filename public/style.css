@@ -26,10 +26,11 @@ body {
 
 .info-panel {
     background: rgba(255, 255, 255, 0.1);
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
     text-align: center;
-    font-size: 0.9rem;
+    font-size: 1.1rem;
+    font-weight: bold;
 }
 
 /* Card back styles - FIXED */
@@ -228,11 +229,29 @@ body {
     }
 }
 
+/* IMPROVED PLAYERS GRID - My player bigger, others smaller */
 .players-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-areas: 
+        "opponent1 opponent2"
+        "opponent3 my-player";
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
     gap: 15px;
     margin-bottom: 20px;
+}
+
+/* Make opponent sections smaller */
+.player-section:not(.my-player) {
+    min-height: 140px;
+    max-height: 180px;
+}
+
+/* Make my player section bigger */
+.player-section.my-player {
+    grid-area: my-player;
+    grid-column: 1 / -1; /* Span full width */
+    min-height: 200px;
 }
 
 .player-section {
@@ -259,9 +278,21 @@ body {
     font-weight: bold;
 }
 
+/* Make my player name larger */
+.player-section.my-player .player-name {
+    font-size: 1.3rem;
+}
+
+/* IMPROVED PLAYER STATS - Bigger text */
 .player-stats {
-    font-size: 0.8rem;
-    opacity: 0.8;
+    font-size: 1rem;
+    font-weight: bold;
+    opacity: 0.9;
+}
+
+/* Make my player stats even bigger */
+.player-section.my-player .player-stats {
+    font-size: 1.2rem;
 }
 
 .team-indicator {
@@ -269,9 +300,9 @@ body {
     left: 50%;
     top: 50%;
     transform: translateX(-50%) translateY(-50%);
-    padding: 3px 8px;
-    border-radius: 10px;
-    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
     font-weight: bold;
     color: white;
     z-index: 10;
@@ -290,13 +321,50 @@ body {
     background: #f44336;
 }
 
+/* TEAM TRICKS DISPLAY */
+.team-tricks-display {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    z-index: 1000;
+    min-width: 150px;
+}
+
+.team-tricks-display.hidden {
+    display: none;
+}
+
+.team-tricks-row {
+    display: flex;
+    justify-content: space-between;
+    margin: 2px 0;
+}
+
+.team-bidder-tricks {
+    color: #4CAF50;
+}
+
+.team-opponent-tricks {
+    color: #f44336;
+}
+
 .hand-cards {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
     justify-content: center;
     margin: 12px 0;
-    min-height: 98px;
+    min-height: 98px; /* Fixed height to prevent jumping */
+}
+
+/* Bigger cards for my player */
+.player-section.my-player .hand-cards {
+    min-height: 120px;
 }
 
 .card {
@@ -315,17 +383,21 @@ body {
     font-weight: bold;
     user-select: none;
     font-size: 1.82rem;
-    opacity: 0;
-    transform: scale(0.8);
-    animation: cardAppear 0.3s ease-out forwards;
     position: relative; /* Important for ::before positioning */
 }
 
-@keyframes cardAppear {
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+/* Bigger cards for my player */
+.player-section.my-player .card {
+    width: 72px;
+    height: 104px;
+    font-size: 2.2rem;
+}
+
+/* Smaller cards for opponents */
+.player-section:not(.my-player) .card {
+    width: 50px;
+    height: 72px;
+    font-size: 1.5rem;
 }
 
 .card:hover:not(.hidden) {
@@ -342,6 +414,12 @@ body {
     border-color: #FF5722;
     box-shadow: 0 0 12px rgba(255, 87, 34, 0.7);
     animation: cardPulse 1s infinite;
+}
+
+/* REMOVE CARD APPEAR ANIMATION to prevent jumping */
+.card {
+    opacity: 1;
+    transform: scale(1);
 }
 
 @keyframes cardPulse {
@@ -363,6 +441,11 @@ body {
     border-radius: 12px;
     text-align: center;
     margin-bottom: 15px;
+    /* FIXED HEIGHT to prevent jumping */
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .btn {
@@ -460,6 +543,7 @@ body {
     color: #2c3e50;
 }
 
+/* TRICK AREA - Always visible to prevent jumping */
 .trick-area {
     background: rgba(255, 255, 255, 0.1);
     padding: 15px;
@@ -467,6 +551,10 @@ body {
     text-align: center;
     margin: 15px 0;
     position: relative;
+    min-height: 140px; /* Fixed minimum height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .played-cards {
@@ -474,6 +562,8 @@ body {
     justify-content: center;
     gap: 12px;
     margin-top: 12px;
+    min-height: 85px; /* Space for cards */
+    align-items: center;
 }
 
 .played-card {
@@ -581,13 +671,32 @@ body {
 
 @media (max-width: 768px) {
     .players-grid {
+        grid-template-areas: 
+            "opponent1"
+            "opponent2"
+            "opponent3"
+            "my-player";
         grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
     }
     
     .card {
         width: 46px;
         height: 68px;
         font-size: 1.56rem;
+    }
+
+    /* Adjust mobile card sizes */
+    .player-section.my-player .card {
+        width: 56px;
+        height: 82px;
+        font-size: 1.8rem;
+    }
+
+    .player-section:not(.my-player) .card {
+        width: 40px;
+        height: 58px;
+        font-size: 1.2rem;
     }
 
     .card.hidden::before {
@@ -606,7 +715,7 @@ body {
 
     .info-panel {
         padding: 8px;
-        font-size: 0.8rem;
+        font-size: 0.9rem;
     }
 
     .current-player, .current-bidder {
@@ -621,5 +730,13 @@ body {
     .dealing-card {
         width: 59px;
         height: 85px;
+    }
+
+    .player-stats {
+        font-size: 0.9rem;
+    }
+
+    .player-section.my-player .player-stats {
+        font-size: 1rem;
     }
 }

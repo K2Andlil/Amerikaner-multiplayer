@@ -5,10 +5,12 @@ class MultiplayerGameClient {
         this.playerId = null;
         this.lastStateSequence = -1; // Track state updates
         this.pendingActions = new Set(); // Track pending actions
+        this.existingCards = new Map(); // Track existing cards to prevent redraw
         
         this.initializeFromStorage();
         this.setupSocketListeners();
         this.setupEventListeners();
+        this.createTeamTricksDisplay();
     }
 
     initializeFromStorage() {
@@ -51,6 +53,24 @@ class MultiplayerGameClient {
         // Clean up storage
         localStorage.removeItem('gameState');
         localStorage.removeItem('playerInfo');
+    }
+
+    createTeamTricksDisplay() {
+        // Create team tricks display element
+        const teamDisplay = document.createElement('div');
+        teamDisplay.id = 'team-tricks-display';
+        teamDisplay.className = 'team-tricks-display hidden';
+        teamDisplay.innerHTML = `
+            <div class="team-tricks-row">
+                <span>Budgivere:</span>
+                <span class="team-bidder-tricks" id="bidder-tricks">0</span>
+            </div>
+            <div class="team-tricks-row">
+                <span>Motstandere:</span>
+                <span class="team-opponent-tricks" id="opponent-tricks">0</span>
+            </div>
+        `;
+        document.body.appendChild(teamDisplay);
     }
 
     rejoinGame() {
@@ -223,6 +243,7 @@ class MultiplayerGameClient {
         this.updateControls();
         this.updateTrickArea();
         this.updatePlayerStats();
+        this.updateTeamTricksDisplay();
     }
 
     updatePhaseIndicator() {
@@ -245,22 +266,44 @@ class MultiplayerGameClient {
         document.getElementById('current-round').textContent = this.gameState.currentRound;
     }
 
+    updateTeamTricksDisplay() {
+        const teamDisplay = document.getElementById('team-tricks-display');
+        const bidderTricks = document.getElementById('bidder-tricks');
+        const opponentTricks = document.getElementById('opponent-tricks');
+        
+        if (this.gameState.teams && Object.keys(this.gameState.teams).length > 0) {
+            teamDisplay.classList.remove('hidden');
+            
+            if (this.gameState.teamTricks) {
+                bidderTricks.textContent = this.gameState.teamTricks.bidder || 0;
+                opponentTricks.textContent = this.gameState.teamTricks.opponent || 0;
+            } else {
+                bidderTricks.textContent = '0';
+                opponentTricks.textContent = '0';
+            }
+        } else {
+            teamDisplay.classList.add('hidden');
+        }
+    }
+
     updatePlayerHands() {
         for (let playerId = 0; playerId < 4; playerId++) {
             const handContainer = document.querySelector(`[data-player="${playerId}"]`);
-            handContainer.innerHTML = '';
+            const playerSection = document.getElementById(`player-${playerId}`);
             
+            // Mark my player section
+            if (playerId === this.playerId) {
+                playerSection.classList.add('my-player');
+            } else {
+                playerSection.classList.remove('my-player');
+            }
+            
+            // IMPROVED: Only update cards if they actually changed
             if (this.gameState.hands[playerId]) {
-                console.log(`Player ${playerId} hand:`, this.gameState.hands[playerId]);
-                this.gameState.hands[playerId].forEach((card, index) => {
-                    const cardElement = this.createCardElement(card, playerId);
-                    cardElement.style.animationDelay = `${index * 0.05}s`;
-                    handContainer.appendChild(cardElement);
-                });
+                this.updatePlayerCards(playerId, handContainer, this.gameState.hands[playerId]);
             }
             
             // Clear all highlighting first
-            const playerSection = document.getElementById(`player-${playerId}`);
             playerSection.classList.remove('current-player', 'current-bidder', 'team-bidder', 'team-partner', 'team-opponent');
             
             // Update player name
@@ -293,6 +336,59 @@ class MultiplayerGameClient {
         
         // Update team indicators
         this.updateTeamIndicators();
+    }
+
+    // NEW METHOD: Smarter card updating to prevent unnecessary redraws
+    updatePlayerCards(playerId, container, newCards) {
+        const existingKey = `player_${playerId}`;
+        const newCardsKey = JSON.stringify(newCards.map(c => ({suit: c.suit, rank: c.rank, hidden: c.hidden})));
+        
+        // Only redraw if cards actually changed
+        if (this.existingCards.get(existingKey) !== newCardsKey) {
+            // Clear container and redraw
+            container.innerHTML = '';
+            
+            newCards.forEach((card, index) => {
+                const cardElement = this.createCardElement(card, playerId);
+                container.appendChild(cardElement);
+            });
+            
+            // Update cache
+            this.existingCards.set(existingKey, newCardsKey);
+        } else {
+            // Cards haven't changed, just update playability
+            const existingCardElements = container.querySelectorAll('.card');
+            existingCardElements.forEach((cardElement, index) => {
+                if (index < newCards.length) {
+                    const card = newCards[index];
+                    this.updateCardPlayability(cardElement, card, playerId);
+                }
+            });
+        }
+    }
+
+    // NEW METHOD: Update card playability without redrawing
+    updateCardPlayability(cardElement, card, playerId) {
+        // Remove existing playability classes
+        cardElement.classList.remove('playable', 'forced');
+        
+        if (!card.hidden) {
+            // Only make cards clickable if it's this player's turn and they own the card
+            if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
+                this.gameState.currentPlayer === playerId &&
+                playerId === this.playerId) {
+                cardElement.classList.add('playable');
+            }
+
+            // Special highlighting for partner's requested card
+            if (this.gameState.waitingForPartner && 
+                playerId === this.gameState.partnerId && 
+                this.gameState.trumpCardRequest &&
+                card.suit === this.gameState.trumpCardRequest.suit && 
+                card.rank === this.gameState.trumpCardRequest.rank) {
+                cardElement.classList.add('forced');
+            }
+        }
     }
 
     updateTeamIndicators() {
