@@ -202,11 +202,174 @@ body {
     }
 }
 
+/* Replace the existing .players-grid section in style.css with this: */
+
 .players-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-direction: column;
     gap: 15px;
     margin-bottom: 20px;
+}
+
+.main-player {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 20px;
+    border: 3px solid #4CAF50;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+    min-height: 180px;
+}
+
+.main-player .player-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(76, 175, 80, 0.3);
+}
+
+.main-player .player-name {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #4CAF50;
+}
+
+.main-player .hand-cards {
+    min-height: 120px;
+    gap: 12px;
+}
+
+.main-player .card {
+    width: 75px;
+    height: 108px;
+    font-size: 2.2rem;
+}
+
+.other-players {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.other-player {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    min-height: 140px;
+    position: relative;
+}
+
+.other-player .player-header {
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.other-player .player-name {
+    font-size: 0.95rem;
+    font-weight: bold;
+}
+
+.other-player .player-stats {
+    font-size: 0.75rem;
+}
+
+.other-player .hand-cards {
+    min-height: 80px;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.other-player .card {
+    width: 45px;
+    height: 65px;
+    font-size: 1.4rem;
+}
+
+.other-player .team-indicator {
+    font-size: 0.65rem;
+    padding: 2px 6px;
+    top: 8px;
+    right: 8px;
+    left: auto;
+    transform: none;
+}
+
+/* Player order indicators */
+.player-order {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(33, 150, 243, 0.8);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+/* Update existing highlighting classes for the new layout */
+.other-player.current-player, .other-player.current-bidder {
+    border: 2px solid #2196F3 !important;
+    background: rgba(33, 150, 243, 0.15) !important;
+    box-shadow: 0 0 12px rgba(33, 150, 243, 0.4);
+    transform: scale(1.02);
+}
+
+.main-player.current-player, .main-player.current-bidder {
+    border-color: #2196F3 !important;
+    background: rgba(33, 150, 243, 0.1) !important;
+    box-shadow: 0 0 20px rgba(33, 150, 243, 0.5);
+}
+
+.other-player.team-bidder {
+    background: rgba(76, 175, 80, 0.2) !important;
+    border: 2px solid #4CAF50;
+}
+
+.other-player.team-partner {
+    background: rgba(76, 175, 80, 0.15) !important;
+    border: 2px solid #4CAF50;
+    border-style: dashed;
+}
+
+.other-player.team-opponent {
+    background: rgba(244, 67, 54, 0.15) !important;
+    border: 2px solid #f44336;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .other-players {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .main-player .card {
+        width: 60px;
+        height: 86px;
+        font-size: 1.8rem;
+    }
+    
+    .other-player .card {
+        width: 38px;
+        height: 55px;
+        font-size: 1.2rem;
+    }
+    
+    .main-player {
+        padding: 15px;
+        min-height: 150px;
+    }
+    
+    .other-player {
+        padding: 10px;
+        min-height: 120px;
+    }
 }
 
 .player-section {

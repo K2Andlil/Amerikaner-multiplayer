@@ -104,44 +104,51 @@
             <div class="played-cards" id="played-cards"></div>
         </div>
 
-        <!-- Players -->
-        <div class="players-grid">
-            <div class="player-section" id="player-0">
-                <div class="player-header">
-                    <div class="player-name">Spiller 1</div>
-                    <div class="team-indicator hidden" id="team-indicator-0"></div>
-                    <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
-                </div>
-                <div class="hand-cards" data-player="0"></div>
+        <!-- Replace the existing .players-grid section in game.html with this: -->
+    <div class="players-grid">
+        <!-- Main player (current user) -->
+        <div class="player-section main-player" id="main-player">
+            <div class="player-header">
+                <div class="player-name">Du</div>
+                <div class="team-indicator hidden" id="team-indicator-main"></div>
+                <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
             </div>
+            <div class="hand-cards" data-player="main"></div>
+        </div>
 
-            <div class="player-section" id="player-1">
+        <!-- Other players in turn order -->
+        <div class="other-players">
+            <div class="player-section other-player" id="other-player-1">
+                <div class="player-order">1</div>
                 <div class="player-header">
                     <div class="player-name">Spiller 2</div>
-                    <div class="team-indicator hidden" id="team-indicator-1"></div>
+                    <div class="team-indicator hidden" id="team-indicator-other-1"></div>
                     <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
                 </div>
-                <div class="hand-cards" data-player="1"></div>
+                <div class="hand-cards" data-player="other-1"></div>
             </div>
 
-            <div class="player-section" id="player-2">
+            <div class="player-section other-player" id="other-player-2">
+                <div class="player-order">2</div>
                 <div class="player-header">
                     <div class="player-name">Spiller 3</div>
-                    <div class="team-indicator hidden" id="team-indicator-2"></div>
+                    <div class="team-indicator hidden" id="team-indicator-other-2"></div>
                     <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
                 </div>
-                <div class="hand-cards" data-player="2"></div>
+                <div class="hand-cards" data-player="other-2"></div>
             </div>
 
-            <div class="player-section" id="player-3">
+            <div class="player-section other-player" id="other-player-3">
+                <div class="player-order">3</div>
                 <div class="player-header">
                     <div class="player-name">Spiller 4</div>
-                    <div class="team-indicator hidden" id="team-indicator-3"></div>
+                    <div class="team-indicator hidden" id="team-indicator-other-3"></div>
                     <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
                 </div>
-                <div class="hand-cards" data-player="3"></div>
+                <div class="hand-cards" data-player="other-3"></div>
             </div>
         </div>
+    </div>
 
         <!-- Round End -->
         <div class="controls hidden" id="round-end-controls">
