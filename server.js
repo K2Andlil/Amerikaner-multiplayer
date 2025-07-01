@@ -133,17 +133,20 @@ class MultiplayerGame {
 
     async startGame() {
         if (!this.canStart()) return false;
-    
+
         this.gameStarted = true;
         this.deck = this.createDeck();
         await this.dealCards();
         this.startBidding();
         
-        // FIXED: Broadcast state after bidding is set up
-        this.broadcastGameState();
-        
         console.log(`Game ${this.gameCode} started with players:`, this.players.map(p => `${p.id}:${p.name}`));
         console.log(`Bidding phase started, current bidder: ${this.currentBidder}`);
+        console.log(`Game phase: ${this.phase}`); // Debug log
+        
+        // Ensure state is incremented and broadcast immediately
+        this.stateSequence++;
+        this.broadcastGameState();
+        
         return true;
     }
 
@@ -694,15 +697,15 @@ io.on('connection', (socket) => {
         console.log('Starting game:', playerInfo.gameCode, 'Players:', game.players.length);
 
         if (game.startGame()) {
-            console.log('Game started successfully');
-            // Use the new broadcast method
-            game.broadcastGameState();
+            console.log('Game started successfully, phase:', game.phase, 'current bidder:', game.currentBidder);
             
-            // Also send specific start event
+            // Send gameStarted event to each player with their specific state
             game.players.forEach(player => {
                 const playerSocket = io.sockets.sockets.get(player.socketId);
-                if (playerSocket) {
-                    playerSocket.emit('gameStarted', game.getGameStateForPlayer(player.id));
+                if (playerSocket && player.connected) {
+                    const playerState = game.getGameStateForPlayer(player.id);
+                    console.log(`Sending gameStarted to player ${player.id}, phase: ${playerState.phase}`);
+                    playerSocket.emit('gameStarted', playerState);
                 }
             });
         } else {
