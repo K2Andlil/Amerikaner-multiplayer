@@ -133,12 +133,17 @@ class MultiplayerGame {
 
     async startGame() {
         if (!this.canStart()) return false;
-        
+    
         this.gameStarted = true;
         this.deck = this.createDeck();
         await this.dealCards();
         this.startBidding();
+        
+        // FIXED: Broadcast state after bidding is set up
+        this.broadcastGameState();
+        
         console.log(`Game ${this.gameCode} started with players:`, this.players.map(p => `${p.id}:${p.name}`));
+        console.log(`Bidding phase started, current bidder: ${this.currentBidder}`);
         return true;
     }
 
@@ -167,9 +172,8 @@ class MultiplayerGame {
 
         this.dealingInProgress = false;
         
-        // Immediately broadcast the updated game state so players can see card backs
-        this.broadcastGameState();
-        
+        // REMOVED: this.broadcastGameState(); 
+        // Let startGame() handle broadcasting after bidding setup
         console.log(`Cards dealt for game ${this.gameCode}`);
     }
 

@@ -740,3 +740,218 @@ body {
         font-size: 1rem;
     }
 }
+/* NEW LAYOUT - Big rectangle top, small squares bottom */
+.players-grid {
+    display: grid !important;
+    grid-template-areas: 
+        "my-player my-player my-player"
+        "trick trick trick"
+        "next1 next2 next3" !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
+    grid-template-rows: 240px 1fr 180px !important;
+    gap: 15px;
+    margin-bottom: 20px;
+    min-height: 75vh;
+}
+
+/* Your player section - big rectangle at top */
+.player-section.my-player {
+    grid-area: my-player !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 15px;
+    padding: 20px;
+    border: 3px solid rgba(76, 175, 80, 0.5) !important;
+    min-height: 220px !important;
+}
+
+/* Other players positioned by play order at bottom */
+.player-section.next-1 {
+    grid-area: next1;
+}
+
+.player-section.next-2 {
+    grid-area: next2;
+}
+
+.player-section.next-3 {
+    grid-area: next3;
+}
+
+/* Opponent sections - small squares at bottom */
+.player-section:not(.my-player) {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px;
+    padding: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+    height: 160px !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    min-height: auto !important;
+    max-height: 160px !important;
+}
+
+/* Turn order indicators on opponent boxes */
+.turn-order-indicator {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2196F3;
+    color: white;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8rem;
+    border: 2px solid white;
+    z-index: 10;
+}
+
+/* Current player highlighting for new layout */
+.player-section.current-player .turn-order-indicator,
+.player-section.current-bidder .turn-order-indicator {
+    background: #4CAF50 !important;
+    animation: currentPlayerPulse 2s infinite;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+}
+
+.player-section.current-player,
+.player-section.current-bidder {
+    border-color: #4CAF50 !important;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.6) !important;
+    transform: scale(1.05) !important;
+}
+
+@keyframes currentPlayerPulse {
+    0%, 100% {
+        transform: translateX(-50%) scale(1);
+    }
+    50% {
+        transform: translateX(-50%) scale(1.2);
+    }
+}
+
+/* Trick area in the middle */
+.trick-area {
+    grid-area: trick !important;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    position: relative;
+    min-height: 180px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Compact opponent player info */
+.player-section:not(.my-player) .player-header {
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.player-section:not(.my-player) .player-name {
+    font-size: 0.9rem !important;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.player-section:not(.my-player) .player-stats {
+    font-size: 0.8rem !important;
+    text-align: center;
+    margin-top: 4px;
+}
+
+/* Compact opponent hands - show as card count with icon */
+.player-section:not(.my-player) .hand-cards {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    min-height: 70px !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    flex-wrap: nowrap !important;
+}
+
+.card-count-display {
+    font-size: 2rem;
+    color: #4CAF50;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    font-weight: bold;
+}
+
+.card-count-label {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    text-align: center;
+}
+
+/* Team indicators for compact view */
+.player-section:not(.my-player) .team-indicator {
+    position: absolute !important;
+    top: 5px !important;
+    right: 5px !important;
+    left: auto !important;
+    transform: none !important;
+    padding: 2px 6px !important;
+    border-radius: 8px !important;
+    font-size: 0.7rem !important;
+    font-weight: bold;
+}
+
+/* Visual flow arrows between players */
+.flow-arrow {
+    position: absolute;
+    bottom: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #2196F3;
+    font-size: 1.5rem;
+    opacity: 0.6;
+    animation: arrowBounce 2s infinite;
+}
+
+.flow-arrow.hidden {
+    display: none;
+}
+
+@keyframes arrowBounce {
+    0%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    50% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+/* Mobile responsiveness for new layout */
+@media (max-width: 768px) {
+    .players-grid {
+        grid-template-rows: 200px 1fr 140px !important;
+        gap: 10px;
+    }
+    
+    .player-section:not(.my-player) {
+        height: 120px !important;
+        max-height: 120px !important;
+        padding: 8px;
+    }
+    
+    .player-section:not(.my-player) .hand-cards {
+        min-height: 50px !important;
+    }
+    
+    .card-count-display {
+        font-size: 1.5rem;
+    }
+}
