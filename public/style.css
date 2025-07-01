@@ -122,6 +122,86 @@ body {
     color: white;
 }
 
+/* Card playing animation */
+.card.playing {
+    position: fixed !important;
+    z-index: 700;
+    pointer-events: none;
+    transform-origin: center;
+    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Trick completion styles */
+.trick-area.complete {
+    background: rgba(76, 175, 80, 0.2);
+    border: 2px solid #4CAF50;
+    box-shadow: 0 0 20px rgba(76, 175, 80, 0.3);
+}
+
+.trick-winner-message {
+    background: rgba(76, 175, 80, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    margin: 10px 0;
+    font-weight: bold;
+    text-align: center;
+    animation: winnerPulse 0.5s ease-out;
+}
+
+@keyframes winnerPulse {
+    0% {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Winning card highlight */
+.played-card.winner {
+    animation: winnerGlow 1s ease-in-out infinite alternate;
+}
+
+@keyframes winnerGlow {
+    0% {
+        box-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    }
+    100% {
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.8);
+    }
+}
+
+/* Countdown timer for trick completion */
+.trick-countdown {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.2rem;
+    min-width: 40px;
+    text-align: center;
+    animation: countdownPulse 1s ease-in-out infinite;
+}
+
+@keyframes countdownPulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+}
+
 .players-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -337,6 +417,7 @@ body {
     border-radius: 12px;
     text-align: center;
     margin: 15px 0;
+    position: relative;
 }
 
 .played-cards {
@@ -357,11 +438,14 @@ body {
 @keyframes cardSlideIn {
     0% {
         opacity: 0;
-        transform: translateY(-20px);
+        transform: translateY(-30px) scale(0.8);
+    }
+    50% {
+        transform: translateY(-10px) scale(1.05);
     }
     100% {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
     }
 }
 
