@@ -65,21 +65,11 @@ class MultiplayerGameClient {
         this.socket.on('gameUpdated', (newGameState) => {
             console.log('Received game update, sequence:', newGameState.stateSequence, 'last:', this.lastStateSequence);
             
-            // Check if round just ended
-            const wasNotRoundEnd = this.gameState?.phase !== 'round_end';
-            const isNowRoundEnd = newGameState.phase === 'round_end';
-            
             // Only update if this is a newer state (prevent out-of-order updates)
             if (newGameState.stateSequence > this.lastStateSequence) {
                 this.gameState = newGameState;
                 this.lastStateSequence = newGameState.stateSequence;
                 this.updateDisplay();
-                
-                // Update highscores when round ends
-                if (wasNotRoundEnd && isNowRoundEnd && this.playerName) {
-                    const myScore = this.gameState.scores[this.playerId] || 0;
-                    this.updateHighscore(this.playerName, myScore);
-                }
                 
                 // Clear any pending actions for this player's turn
                 if (newGameState.currentBidder !== this.playerId && newGameState.currentPlayer !== this.playerId) {
@@ -231,7 +221,6 @@ class MultiplayerGameClient {
             'bidding': 'Budgivning',
             'partner_selection': 'Velg partner',
             'playing': 'Spilling',
-            'trick_complete': 'Stikk ferdig',
             'round_end': 'Runde ferdig'
         };
         indicator.textContent = phaseNames[this.gameState.phase] || this.gameState.phase;
@@ -418,103 +407,42 @@ class MultiplayerGameClient {
                 .map(card => card.rank)
         );
 
-        // Create card elements for each rank in the trump suit that bidder doesn't have
+        // Create buttons for each rank in the trump suit that bidder doesn't have
         const ranks = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
         const rankNames = {14: 'A', 13: 'K', 12: 'Q', 11: 'J'};
 
         ranks.forEach(rank => {
             // Only show cards the bidder doesn't have
             if (!bidderTrumpRanks.has(rank)) {
-                const cardButton = document.createElement('div');
-                cardButton.className = `partner-card-btn ${this.gameState.trumpSuit}`;
-                cardButton.dataset.rank = rank;
-                cardButton.dataset.suit = this.gameState.trumpSuit;
+                const button = document.createElement('button');
+                button.className = 'partner-card-btn';
+                button.dataset.rank = rank;
+                button.dataset.suit = this.gameState.trumpSuit;
                 
                 const rankDisplay = rankNames[rank] || rank.toString();
                 const suitSymbol = this.getSuitSymbol(this.gameState.trumpSuit);
+                button.textContent = `${rankDisplay}${suitSymbol}`;
                 
-                // Create card structure similar to regular cards
-                cardButton.innerHTML = `
-                    <div class="card-rank">${rankDisplay}</div>
-                    <div class="card-suit">${suitSymbol}</div>
-                `;
-                
-                cardButton.addEventListener('click', () => {
+                button.addEventListener('click', () => {
                     // Clear previous selection
                     document.querySelectorAll('.partner-card-btn').forEach(b => b.classList.remove('selected'));
-                    cardButton.classList.add('selected');
+                    button.classList.add('selected');
                     this.selectedPartnerCard = {suit: this.gameState.trumpSuit, rank: rank};
                     document.getElementById('confirm-partner').classList.remove('hidden');
                 });
                 
-                container.appendChild(cardButton);
+                container.appendChild(button);
             }
         });
     }
 
     updateTrickArea() {
         const playedCardsContainer = document.getElementById('played-cards');
-        const trickArea = document.querySelector('.trick-area');
-        
-        // Remove existing countdown if any
-        const existingCountdown = document.querySelector('.trick-countdown');
-        if (existingCountdown) {
-            existingCountdown.remove();
-        }
-        
-        // Handle trick completion phase
-        if (this.gameState.phase === 'trick_complete') {
-            trickArea.classList.add('complete');
-            
-            // Show winner message
-            let winnerMessage = document.querySelector('.trick-winner-message');
-            if (!winnerMessage) {
-                winnerMessage = document.createElement('div');
-                winnerMessage.className = 'trick-winner-message';
-                trickArea.insertBefore(winnerMessage, playedCardsContainer);
-            }
-            
-            const winnerName = this.gameState.trickWinner?.playerName || 'Ukjent';
-            winnerMessage.textContent = `${winnerName} vant stikket!`;
-            
-            // Add countdown timer
-            const countdown = document.createElement('div');
-            countdown.className = 'trick-countdown';
-            countdown.textContent = '5';
-            trickArea.appendChild(countdown);
-            
-            let timeLeft = 5;
-            const countdownInterval = setInterval(() => {
-                timeLeft--;
-                countdown.textContent = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    countdown.remove();
-                }
-            }, 1000);
-            
-        } else {
-            trickArea.classList.remove('complete');
-            // Remove winner message
-            const winnerMessage = document.querySelector('.trick-winner-message');
-            if (winnerMessage) {
-                winnerMessage.remove();
-            }
-        }
-
-        // Clear and rebuild played cards
         playedCardsContainer.innerHTML = '';
 
-        this.gameState.currentTrick.forEach((play, index) => {
+        this.gameState.currentTrick.forEach(play => {
             const playedCardDiv = document.createElement('div');
             playedCardDiv.className = 'played-card';
-            
-            // Highlight winning card during trick completion
-            if (this.gameState.phase === 'trick_complete' && 
-                this.gameState.trickWinner && 
-                play.playerId === this.gameState.trickWinner.playerId) {
-                playedCardDiv.classList.add('winner');
-            }
 
             const cardElement = this.createCardElement(play.card, null, false);
             const playerNameDiv = document.createElement('div');
@@ -523,9 +451,6 @@ class MultiplayerGameClient {
             playedCardDiv.appendChild(playerNameDiv);
             playedCardDiv.appendChild(cardElement);
             playedCardsContainer.appendChild(playedCardDiv);
-            
-            // Stagger the card appearance animations
-            playedCardDiv.style.animationDelay = `${index * 0.1}s`;
         });
     }
 
@@ -598,7 +523,7 @@ class MultiplayerGameClient {
             playerId === this.playerId) {
             cardDiv.classList.add('playable');
             cardDiv.addEventListener('click', () => {
-                this.playCardWithAnimation(card, cardDiv);
+                this.socket.emit('playCard', {suit: card.suit, rank: card.rank});
             });
         }
 
@@ -619,93 +544,6 @@ class MultiplayerGameClient {
         `;
 
         return cardDiv;
-    }
-
-    // New method to handle card playing with animation
-    playCardWithAnimation(card, cardElement) {
-        // Get the card's current position
-        const cardRect = cardElement.getBoundingClientRect();
-        const trickArea = document.querySelector('.trick-area .played-cards');
-        const trickRect = trickArea.getBoundingClientRect();
-        
-        // Create a clone for animation
-        const animatedCard = cardElement.cloneNode(true);
-        animatedCard.classList.add('playing');
-        animatedCard.style.position = 'fixed';
-        animatedCard.style.left = cardRect.left + 'px';
-        animatedCard.style.top = cardRect.top + 'px';
-        animatedCard.style.width = cardRect.width + 'px';
-        animatedCard.style.height = cardRect.height + 'px';
-        animatedCard.style.zIndex = '700';
-        
-        document.body.appendChild(animatedCard);
-        
-        // Hide the original card immediately
-        cardElement.style.opacity = '0';
-        
-        // Calculate target position (center of trick area)
-        const targetX = trickRect.left + (trickRect.width / 2) - (cardRect.width / 2);
-        const targetY = trickRect.top + (trickRect.height / 2) - (cardRect.height / 2);
-        
-        // Animate to trick area
-        requestAnimationFrame(() => {
-            animatedCard.style.left = targetX + 'px';
-            animatedCard.style.top = targetY + 'px';
-            animatedCard.style.transform = 'scale(1.1)';
-        });
-        
-        // Send the play after a short delay to allow animation to start
-        setTimeout(() => {
-            this.socket.emit('playCard', {suit: card.suit, rank: card.rank});
-        }, 200);
-        
-        // Clean up the animated card after animation completes
-        setTimeout(() => {
-            if (document.body.contains(animatedCard)) {
-                document.body.removeChild(animatedCard);
-            }
-        }, 800);
-    }
-
-    // Add method to update player highscore
-    updateHighscore(playerName, gameScore) {
-        const cookieName = `player_stats_${playerName}`;
-        let stats = { gamesPlayed: 0, totalPoints: 0, bestGame: 0 };
-
-        // Try to load existing stats
-        const existingData = this.getCookie(cookieName);
-        if (existingData) {
-            try {
-                stats = JSON.parse(decodeURIComponent(existingData));
-            } catch (e) {
-                console.error('Error parsing existing stats:', e);
-            }
-        }
-
-        // Update stats
-        stats.gamesPlayed += 1;
-        stats.totalPoints += gameScore;
-        if (gameScore > stats.bestGame) {
-            stats.bestGame = gameScore;
-        }
-
-        // Save back to cookie (expires in 1 year)
-        const expiryDate = new Date();
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        
-        document.cookie = `${cookieName}=${encodeURIComponent(JSON.stringify(stats))}; expires=${expiryDate.toUTCString()}; path=/`;
-        
-        console.log(`Updated highscore for ${playerName}:`, stats);
-    }
-
-    // Helper method to get cookie value
-    getCookie(name) {
-        const value = `; ${document.cookie}`;
-        const parts = value.split(`; ${name}=`);
-        if (parts.length === 2) {
-            return parts.pop().split(';').shift();
-        }
-        return null;
     }
 
     getSuitName(suit) {

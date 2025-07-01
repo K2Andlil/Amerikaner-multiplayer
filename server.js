@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Add this route to serve the lobby page at root
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
+    res.sendFile(path.join(__dirname, 'lobby.html'));
 });
 
 // Game state management
@@ -57,7 +57,6 @@ class MultiplayerGame {
         this.waitingForPartner = false;
         this.partnerId = null;
         this.dealingInProgress = false;
-        this.trickWinner = null;
         
         // Add sequence number for debugging
         this.stateSequence = 0;
@@ -224,6 +223,8 @@ class MultiplayerGame {
         this.stateSequence++;
         return true;
     }
+
+    // ... rest of the methods remain the same but add logging ...
 
     selectPartnerCard(cardData) {
         this.selectedPartnerCard = cardData;
@@ -413,30 +414,16 @@ class MultiplayerGame {
         // Set next starter
         this.currentPlayer = winnerPlay.playerId;
 
-        // Show trick result for 3 seconds before clearing
-        this.phase = 'trick_complete';
-        this.trickWinner = winnerPlay;
-        this.stateSequence++;
+        // Reset for next trick
+        this.currentTrick = [];
+        this.leadSuit = null;
+
+        // Check if round is complete
+        if (Object.values(this.hands).every(hand => hand.length === 0)) {
+            this.completeRound();
+        }
         
-        // Broadcast the trick completion state
-        this.broadcastGameState();
-
-        // Wait 5 seconds before clearing the trick
-        setTimeout(() => {
-            // Reset for next trick
-            this.currentTrick = [];
-            this.leadSuit = null;
-            this.phase = 'playing';
-            this.trickWinner = null;
-
-            // Check if round is complete
-            if (Object.values(this.hands).every(hand => hand.length === 0)) {
-                this.completeRound();
-            } else {
-                this.stateSequence++;
-                this.broadcastGameState();
-            }
-        }, 5000);
+        this.stateSequence++;
     }
 
     completeRound() {
@@ -499,7 +486,6 @@ class MultiplayerGame {
         this.firstCardPlayed = false;
         this.waitingForPartner = false;
         this.partnerId = null;
-        this.trickWinner = null;
         
         await this.dealCards();
         this.startBidding();
@@ -513,8 +499,7 @@ class MultiplayerGame {
             if (i === playerId) {
                 otherPlayerHands[i] = this.hands[i]; // Full hand for this player
             } else {
-                // Show hidden cards for other players (so you can see card backs)
-                otherPlayerHands[i] = this.hands[i] ? this.hands[i].map(() => ({hidden: true})) : [];
+                otherPlayerHands[i] = this.hands[i] ? new Array(this.hands[i].length).fill({hidden: true}) : [];
             }
         }
 
@@ -543,8 +528,7 @@ class MultiplayerGame {
             partnerId: this.partnerId,
             dealingInProgress: this.dealingInProgress,
             playerId: playerId,
-            stateSequence: this.stateSequence,
-            trickWinner: this.trickWinner
+            stateSequence: this.stateSequence  // Add for debugging
         };
     }
 
