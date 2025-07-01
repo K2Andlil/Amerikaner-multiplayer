@@ -32,6 +32,32 @@ body {
     font-size: 0.9rem;
 }
 
+/* Card back styles - FIXED */
+.card.hidden {
+    background: linear-gradient(45deg, #1a237e, #303f9f) !important;
+    border: 2px solid #fff !important;
+    border-radius: 5px;
+    position: relative;
+    color: white !important; /* Override suit colors */
+}
+
+.card.hidden::before {
+    content: '🂠';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: white;
+    z-index: 1;
+}
+
+/* Make sure hidden card content is not visible */
+.card.hidden .card-rank,
+.card.hidden .card-suit {
+    display: none !important;
+}
+
 /* Popup Message Styles */
 .popup-message {
     position: fixed;
@@ -292,6 +318,7 @@ body {
     opacity: 0;
     transform: scale(0.8);
     animation: cardAppear 0.3s ease-out forwards;
+    position: relative; /* Important for ::before positioning */
 }
 
 @keyframes cardAppear {
@@ -301,7 +328,7 @@ body {
     }
 }
 
-.card:hover {
+.card:hover:not(.hidden) {
     transform: translateY(-3px);
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
 }
@@ -539,6 +566,19 @@ body {
     }
 }
 
+/* Game code display */
+.game-code-display {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    z-index: 1000;
+}
+
 @media (max-width: 768px) {
     .players-grid {
         grid-template-columns: 1fr;
@@ -548,6 +588,10 @@ body {
         width: 46px;
         height: 68px;
         font-size: 1.56rem;
+    }
+
+    .card.hidden::before {
+        font-size: 1.2rem; /* Smaller card back symbol for mobile */
     }
 
     .team-indicator {
