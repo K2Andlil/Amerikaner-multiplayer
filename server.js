@@ -163,10 +163,6 @@ class MultiplayerGame {
         });
 
         this.dealingInProgress = false;
-        
-        // Immediately broadcast the updated game state so players can see card backs
-        this.broadcastGameState();
-        
         console.log(`Cards dealt for game ${this.gameCode}`);
     }
 
@@ -518,16 +514,7 @@ class MultiplayerGame {
                 otherPlayerHands[i] = this.hands[i]; // Full hand for this player
             } else {
                 // Show hidden cards for other players (so you can see card backs)
-                // Make sure to preserve the array length so UI shows correct number of cards
-                if (this.hands[i]) {
-                    otherPlayerHands[i] = this.hands[i].map(() => ({
-                        hidden: true,
-                        suit: 'hidden',
-                        rank: 0
-                    }));
-                } else {
-                    otherPlayerHands[i] = [];
-                }
+                otherPlayerHands[i] = this.hands[i] ? this.hands[i].map(() => ({hidden: true})) : [];
             }
         }
 

@@ -251,7 +251,6 @@ class MultiplayerGameClient {
             handContainer.innerHTML = '';
             
             if (this.gameState.hands[playerId]) {
-                console.log(`Player ${playerId} hand:`, this.gameState.hands[playerId]);
                 this.gameState.hands[playerId].forEach((card, index) => {
                     const cardElement = this.createCardElement(card, playerId);
                     cardElement.style.animationDelay = `${index * 0.05}s`;
@@ -575,15 +574,9 @@ class MultiplayerGameClient {
     createCardElement(card, playerId, clickable = true) {
         const cardDiv = document.createElement('div');
         
-        // Handle hidden cards (other players' cards) - show card backs
+        // Handle hidden cards (other players' cards)
         if (card.hidden) {
             cardDiv.className = 'card hidden';
-            // Add the card back content that CSS expects
-            cardDiv.innerHTML = `
-                <div class="card-rank" style="display: none;"></div>
-                <div class="card-suit" style="display: none;"></div>
-            `;
-            // The CSS ::before pseudo-element will handle the card back symbol
             return cardDiv;
         }
 
