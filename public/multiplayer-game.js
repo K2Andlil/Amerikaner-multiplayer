@@ -63,7 +63,7 @@ class MultiplayerGameClient {
 
     setupSocketListeners() {
         this.socket.on('gameUpdated', (newGameState) => {
-            console.log('Received game update, sequence:', newGameState.stateSequence, 'last:', this.lastStateSequence);
+            console.log('Received game update, sequence:', newGameState.stateSequence, 'last:', this.lastStateSequence, 'phase:', newGameState.phase);
             
             // Only update if this is a newer state (prevent out-of-order updates)
             if (newGameState.stateSequence > this.lastStateSequence) {
@@ -71,15 +71,17 @@ class MultiplayerGameClient {
                 this.lastStateSequence = newGameState.stateSequence;
                 this.updateDisplay();
                 
-                // Clear any pending actions for this player's turn
-                if (newGameState.currentBidder !== this.playerId && newGameState.currentPlayer !== this.playerId) {
+                // Clear any pending actions if it's not this player's turn
+                if (newGameState.phase === 'bidding' && newGameState.currentBidder !== this.playerId) {
+                    this.pendingActions.clear();
+                } else if ((newGameState.phase === 'playing' || newGameState.phase === 'partner_selection') && newGameState.currentPlayer !== this.playerId) {
                     this.pendingActions.clear();
                 }
             }
         });
 
         this.socket.on('gameStarted', (gameState) => {
-            console.log('Game started, received initial state');
+            console.log('Game started, received initial state, phase:', gameState.phase);
             this.gameState = gameState;
             this.lastStateSequence = gameState.stateSequence || 0;
             this.updateDisplay();
@@ -152,16 +154,23 @@ class MultiplayerGameClient {
     }
 
     makeBid(bid) {
-        console.log('Attempting to make bid:', bid, 'Current bidder:', this.gameState?.currentBidder, 'My ID:', this.playerId);
+        console.log('Attempting to make bid:', bid, 'Current bidder:', this.gameState?.currentBidder, 'My ID:', this.playerId, 'Phase:', this.gameState?.phase);
         
         if (!this.gameState) {
             console.log('No game state available');
             return;
         }
 
+        // Check if we're in bidding phase
+        if (this.gameState.phase !== 'bidding') {
+            console.log('Not in bidding phase, current phase:', this.gameState.phase);
+            this.showPopupMessage('Ikke i budgivnings fase!');
+            return;
+        }
+
         // Check if it's really this player's turn
         if (this.gameState.currentBidder !== this.playerId) {
-            console.log('Not my turn to bid');
+            console.log('Not my turn to bid, current bidder:', this.gameState.currentBidder);
             this.showPopupMessage('Det er ikke din tur!');
             return;
         }
@@ -170,6 +179,13 @@ class MultiplayerGameClient {
         const actionKey = `bid_${bid}`;
         if (this.pendingActions.has(actionKey)) {
             console.log('Bid already pending');
+            return;
+        }
+
+        // Validate bid value
+        if (bid !== 'pass' && (bid <= this.gameState.highestBid || bid < 7 || bid > 13)) {
+            console.log('Invalid bid value:', bid, 'highest bid:', this.gameState.highestBid);
+            this.showPopupMessage('Ugyldig bud!');
             return;
         }
 
@@ -205,7 +221,7 @@ class MultiplayerGameClient {
             return;
         }
 
-        console.log('Updating display with state sequence:', this.gameState.stateSequence);
+        console.log('Updating display with state sequence:', this.gameState.stateSequence, 'phase:', this.gameState.phase);
         
         this.updatePhaseIndicator();
         this.updateGameInfo();
@@ -217,6 +233,7 @@ class MultiplayerGameClient {
     updatePhaseIndicator() {
         const indicator = document.getElementById('phase-indicator');
         const phaseNames = {
+            'waiting': 'Venter på spillere',
             'bidding': 'Budgivning',
             'partner_selection': 'Velg partner',
             'playing': 'Spilling',
@@ -359,6 +376,27 @@ class MultiplayerGameClient {
         this.updateTeamIndicators();
     }
 
+    updateCardPlayableState(cardElement, card, playerId) {
+        // Remove existing classes
+        cardElement.classList.remove('playable', 'forced');
+        
+        // Only add playable class if it's this player's turn and they own the card
+        if ((this.gameState.phase === 'playing' || this.gameState.phase === 'partner_selection') && 
+            this.gameState.currentPlayer === playerId &&
+            playerId === this.playerId) {
+            cardElement.classList.add('playable');
+        }
+        
+        // Special highlighting for partner's requested card
+        if (this.gameState.waitingForPartner && 
+            playerId === this.gameState.partnerId && 
+            this.gameState.trumpCardRequest &&
+            card.suit === this.gameState.trumpCardRequest.suit && 
+            card.rank === this.gameState.trumpCardRequest.rank) {
+            cardElement.classList.add('forced');
+        }
+    }
+
     // Get other players in turn order
     getOtherPlayersInOrder() {
         const otherPlayers = [];
@@ -443,17 +481,21 @@ class MultiplayerGameClient {
     }
 
     updateControls() {
+        console.log('Updating controls for phase:', this.gameState.phase);
+        
         // Hide all controls
         document.getElementById('bidding-controls').classList.add('hidden');
         document.getElementById('partner-controls').classList.add('hidden');
         document.getElementById('round-end-controls').classList.add('hidden');
 
         if (this.gameState.phase === 'bidding') {
+            console.log('Showing bidding controls');
             document.getElementById('bidding-controls').classList.remove('hidden');
             const currentBidderName = this.gameState.players[this.gameState.currentBidder]?.name || `Spiller ${this.gameState.currentBidder + 1}`;
             document.getElementById('current-bidder').textContent = currentBidderName;
             this.updateBidButtons();
         } else if (this.gameState.phase === 'partner_selection' && this.playerId === this.gameState.highestBidder) {
+            console.log('Showing partner selection controls');
             document.getElementById('partner-controls').classList.remove('hidden');
             const winnerName = this.gameState.players[this.gameState.highestBidder]?.name || `Spiller ${this.gameState.highestBidder + 1}`;
             document.getElementById('partner-winner').textContent = winnerName;
@@ -486,6 +528,8 @@ class MultiplayerGameClient {
         
         // Check for pending actions
         const hasPendingBid = Array.from(this.pendingActions).some(action => action.startsWith('bid_'));
+        
+        console.log('Updating bid buttons - My turn:', isMyTurn, 'Pending:', hasPendingBid, 'Highest bid:', this.gameState.highestBid);
         
         bidButtons.forEach(btn => {
             const bidValue = parseInt(btn.dataset.bid);

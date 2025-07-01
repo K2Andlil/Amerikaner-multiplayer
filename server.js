@@ -133,13 +133,23 @@ class MultiplayerGame {
         
         this.gameStarted = true;
         this.deck = this.createDeck();
+        
+        // Deal cards and then start bidding
         await this.dealCards();
-        this.startBidding();
+        
+        // Add a small delay to ensure all cards are dealt before starting bidding
+        setTimeout(() => {
+            this.startBidding();
+            // Broadcast the updated state immediately after starting bidding
+            this.broadcastGameState();
+        }, 100);
+        
         console.log(`Game ${this.gameCode} started with players:`, this.players.map(p => `${p.id}:${p.name}`));
         return true;
     }
 
     async dealCards() {
+        console.log(`Starting to deal cards for game ${this.gameCode}`);
         this.dealingInProgress = true;
         this.hands = {0: [], 1: [], 2: [], 3: []};
 
@@ -167,20 +177,22 @@ class MultiplayerGame {
     }
 
     startBidding() {
+        console.log(`Starting bidding for game ${this.gameCode}`);
         this.phase = 'bidding';
         this.currentBidder = 0;
         this.bids = {};
         this.passes = new Set();
         this.highestBid = 6;
         this.highestBidder = null;
-        console.log(`Bidding started for game ${this.gameCode}, first bidder: ${this.currentBidder}`);
+        this.stateSequence++;
+        console.log(`Bidding started for game ${this.gameCode}, first bidder: ${this.currentBidder}, phase: ${this.phase}`);
     }
 
     makeBid(playerId, bid) {
-        console.log(`Player ${playerId} attempting bid ${bid}. Current bidder: ${this.currentBidder}, dealing: ${this.dealingInProgress}`);
+        console.log(`Player ${playerId} attempting bid ${bid}. Current bidder: ${this.currentBidder}, phase: ${this.phase}, dealing: ${this.dealingInProgress}`);
         
         if (playerId !== this.currentBidder || this.dealingInProgress || this.phase !== 'bidding') {
-            console.log(`Bid rejected: wrong player or dealing in progress`);
+            console.log(`Bid rejected: wrong player (${playerId} vs ${this.currentBidder}), phase: ${this.phase}, or dealing in progress: ${this.dealingInProgress}`);
             return false;
         }
 
@@ -195,7 +207,7 @@ class MultiplayerGame {
             this.passes.delete(playerId);
             console.log(`Player ${playerId} bid ${bid} (new highest)`);
         } else {
-            console.log(`Invalid bid ${bid} from player ${playerId}`);
+            console.log(`Invalid bid ${bid} from player ${playerId}. Current highest: ${this.highestBid}`);
             return false;
         }
 
@@ -204,7 +216,7 @@ class MultiplayerGame {
             this.currentBidder = (this.currentBidder + 1) % 4;
         } while (this.passes.has(this.currentBidder) && this.passes.size < 3);
 
-        console.log(`Next bidder: ${this.currentBidder}`);
+        console.log(`Next bidder: ${this.currentBidder}, passes: ${Array.from(this.passes)}`);
 
         // Check if bidding is complete
         // Bidding ends when:
@@ -213,16 +225,19 @@ class MultiplayerGame {
         // 3. All 4 players have passed
         if (this.highestBid === 13 || this.passes.size >= 3) {
             if (this.highestBidder !== null) {
+                console.log(`Bidding complete! Winner: ${this.highestBidder} with bid ${this.highestBid}`);
                 this.phase = 'playing';
                 this.currentPlayer = this.highestBidder;
                 this.firstCardPlayed = false;
-                console.log(`Bidding complete, winner: ${this.highestBidder} with ${this.highestBid}`);
             } else {
                 // All passed, redeal
                 console.log(`All passed, redealing...`);
                 this.deck = this.createDeck();
                 this.dealCards().then(() => {
-                    this.startBidding();
+                    setTimeout(() => {
+                        this.startBidding();
+                        this.broadcastGameState();
+                    }, 100);
                 });
                 return true;
             }
@@ -232,8 +247,6 @@ class MultiplayerGame {
         this.stateSequence++;
         return true;
     }
-
-    // ... rest of the methods remain the same but add logging ...
 
     selectPartnerCard(cardData) {
         this.selectedPartnerCard = cardData;
@@ -530,8 +543,12 @@ class MultiplayerGame {
         this.partnerId = null;
         
         await this.dealCards();
-        this.startBidding();
-        this.stateSequence++;
+        
+        // Add delay and proper phase transition for next round bidding
+        setTimeout(() => {
+            this.startBidding();
+            this.broadcastGameState();
+        }, 100);
     }
 
     getGameStateForPlayer(playerId) {
@@ -571,12 +588,13 @@ class MultiplayerGame {
             dealingInProgress: this.dealingInProgress,
             playerId: playerId,
             stateSequence: this.stateSequence,
-            roundResults: this.roundResults  // Add this line
+            roundResults: this.roundResults
         };
     }
 
     // Add method to broadcast state to all connected players
     broadcastGameState() {
+        console.log(`Broadcasting game state for ${this.gameCode}, phase: ${this.phase}, sequence: ${this.stateSequence}`);
         this.players.forEach(player => {
             if (player.connected) {
                 const socket = io.sockets.sockets.get(player.socketId);
@@ -654,12 +672,10 @@ io.on('connection', (socket) => {
 
         console.log('Starting game:', playerInfo.gameCode, 'Players:', game.players.length);
 
-        if (game.startGame()) {
-            console.log('Game started successfully');
-            // Use the new broadcast method
-            game.broadcastGameState();
+        if (await game.startGame()) {
+            console.log('Game started successfully, broadcasting initial state');
             
-            // Also send specific start event
+            // Send specific start event first
             game.players.forEach(player => {
                 const playerSocket = io.sockets.sockets.get(player.socketId);
                 if (playerSocket) {
@@ -687,15 +703,13 @@ io.on('connection', (socket) => {
             return;
         }
 
-        console.log(`Player ${playerInfo.playerId} attempting to bid ${bid}. Current bidder: ${game.currentBidder}`);
+        console.log(`Player ${playerInfo.playerId} attempting to bid ${bid}. Current bidder: ${game.currentBidder}, phase: ${game.phase}`);
         
         if (game.makeBid(playerInfo.playerId, bid)) {
-            console.log(`Bid successful. New current bidder: ${game.currentBidder}`);
+            console.log(`Bid successful. New current bidder: ${game.currentBidder}, phase: ${game.phase}`);
             
-            // Use the improved broadcast method
-            setTimeout(() => {
-                game.broadcastGameState();
-            }, 50); // Small delay to ensure state is consistent
+            // Immediate broadcast
+            game.broadcastGameState();
 
             // Send special popup messages
             if (bid === 7) {
@@ -753,10 +767,7 @@ io.on('connection', (socket) => {
         const game = games.get(playerInfo.gameCode);
         if (!game) return;
 
-        game.startNextRound().then(() => {
-            // Use improved broadcast
-            game.broadcastGameState();
-        });
+        game.startNextRound();
     });
 
     socket.on('rejoinGame', ({gameCode, playerId}) => {
