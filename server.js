@@ -421,7 +421,7 @@ class MultiplayerGame {
         // Broadcast the trick completion state
         this.broadcastGameState();
 
-        // Wait 3 seconds before clearing the trick
+        // Wait 5 seconds before clearing the trick
         setTimeout(() => {
             // Reset for next trick
             this.currentTrick = [];
@@ -436,7 +436,7 @@ class MultiplayerGame {
                 this.stateSequence++;
                 this.broadcastGameState();
             }
-        }, 3000);
+        }, 5000);
     }
 
     completeRound() {
@@ -513,7 +513,8 @@ class MultiplayerGame {
             if (i === playerId) {
                 otherPlayerHands[i] = this.hands[i]; // Full hand for this player
             } else {
-                otherPlayerHands[i] = this.hands[i] ? new Array(this.hands[i].length).fill({hidden: true}) : [];
+                // Show hidden cards for other players (so you can see card backs)
+                otherPlayerHands[i] = this.hands[i] ? this.hands[i].map(() => ({hidden: true})) : [];
             }
         }
 

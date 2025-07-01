@@ -118,7 +118,7 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 1.5rem;
+    font-size: 1.95rem;
     color: white;
 }
 
@@ -267,15 +267,15 @@ body {
 .hand-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     justify-content: center;
     margin: 12px 0;
-    min-height: 75px;
+    min-height: 98px;
 }
 
 .card {
-    width: 45px;
-    height: 65px;
+    width: 59px;
+    height: 85px;
     background: white;
     border: 2px solid #333;
     border-radius: 5px;
@@ -288,7 +288,7 @@ body {
     color: #333;
     font-weight: bold;
     user-select: none;
-    font-size: 1.4rem;
+    font-size: 1.82rem;
     opacity: 0;
     transform: scale(0.8);
     animation: cardAppear 0.3s ease-out forwards;
@@ -384,31 +384,53 @@ body {
 }
 
 .partner-selection {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    max-width: 500px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    max-width: 100%;
     margin: 15px auto;
+    flex-wrap: wrap;
+    padding: 10px;
 }
 
 .partner-card-btn {
-    padding: 8px;
-    font-size: 0.9rem;
-    border: none;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    width: 59px; /* Same as regular cards */
+    height: 85px; /* Same as regular cards */
+    background: white;
+    border: 2px solid #333;
+    border-radius: 5px;
     cursor: pointer;
     transition: all 0.3s ease;
+    color: #333;
+    font-weight: bold;
+    font-size: 1.82rem; /* Same as regular cards */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
 }
 
 .partner-card-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    transform: translateY(-1px);
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .partner-card-btn.selected {
-    background: #4CAF50;
+    border-color: #4CAF50;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+    transform: translateY(-5px) scale(1.05);
+}
+
+/* Color the partner cards based on suit */
+.partner-card-btn.hearts,
+.partner-card-btn.diamonds {
+    color: #e74c3c;
+}
+
+.partner-card-btn.clubs,
+.partner-card-btn.spades {
+    color: #2c3e50;
 }
 
 .trick-area {
@@ -523,9 +545,9 @@ body {
     }
     
     .card {
-        width: 35px;
-        height: 52px;
-        font-size: 1.2rem;
+        width: 46px;
+        height: 68px;
+        font-size: 1.56rem;
     }
 
     .team-indicator {
@@ -553,7 +575,7 @@ body {
     }
 
     .dealing-card {
-        width: 35px;
-        height: 52px;
+        width: 59px;
+        height: 85px;
     }
 }

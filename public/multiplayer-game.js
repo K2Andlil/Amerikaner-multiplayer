@@ -418,31 +418,36 @@ class MultiplayerGameClient {
                 .map(card => card.rank)
         );
 
-        // Create buttons for each rank in the trump suit that bidder doesn't have
+        // Create card elements for each rank in the trump suit that bidder doesn't have
         const ranks = [14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
         const rankNames = {14: 'A', 13: 'K', 12: 'Q', 11: 'J'};
 
         ranks.forEach(rank => {
             // Only show cards the bidder doesn't have
             if (!bidderTrumpRanks.has(rank)) {
-                const button = document.createElement('button');
-                button.className = 'partner-card-btn';
-                button.dataset.rank = rank;
-                button.dataset.suit = this.gameState.trumpSuit;
+                const cardButton = document.createElement('div');
+                cardButton.className = `partner-card-btn ${this.gameState.trumpSuit}`;
+                cardButton.dataset.rank = rank;
+                cardButton.dataset.suit = this.gameState.trumpSuit;
                 
                 const rankDisplay = rankNames[rank] || rank.toString();
                 const suitSymbol = this.getSuitSymbol(this.gameState.trumpSuit);
-                button.textContent = `${rankDisplay}${suitSymbol}`;
                 
-                button.addEventListener('click', () => {
+                // Create card structure similar to regular cards
+                cardButton.innerHTML = `
+                    <div class="card-rank">${rankDisplay}</div>
+                    <div class="card-suit">${suitSymbol}</div>
+                `;
+                
+                cardButton.addEventListener('click', () => {
                     // Clear previous selection
                     document.querySelectorAll('.partner-card-btn').forEach(b => b.classList.remove('selected'));
-                    button.classList.add('selected');
+                    cardButton.classList.add('selected');
                     this.selectedPartnerCard = {suit: this.gameState.trumpSuit, rank: rank};
                     document.getElementById('confirm-partner').classList.remove('hidden');
                 });
                 
-                container.appendChild(button);
+                container.appendChild(cardButton);
             }
         });
     }
@@ -475,10 +480,10 @@ class MultiplayerGameClient {
             // Add countdown timer
             const countdown = document.createElement('div');
             countdown.className = 'trick-countdown';
-            countdown.textContent = '3';
+            countdown.textContent = '5';
             trickArea.appendChild(countdown);
             
-            let timeLeft = 3;
+            let timeLeft = 5;
             const countdownInterval = setInterval(() => {
                 timeLeft--;
                 countdown.textContent = timeLeft;
