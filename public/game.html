@@ -104,60 +104,44 @@
             <div class="played-cards" id="played-cards"></div>
         </div>
 
-        <!-- Players Grid - NEW LAYOUT -->
-    <div class="players-grid">
-        <!-- My Player (big rectangle at top) -->
-        <div class="player-section my-player" id="my-player-section">
-            <div class="player-header">
-                <div class="player-name">Du</div>
-                <div class="team-indicator hidden" id="my-team-indicator"></div>
-                <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+        <!-- Players -->
+        <div class="players-grid">
+            <div class="player-section" id="player-0">
+                <div class="player-header">
+                    <div class="player-name">Spiller 1</div>
+                    <div class="team-indicator hidden" id="team-indicator-0"></div>
+                    <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+                </div>
+                <div class="hand-cards" data-player="0"></div>
             </div>
-            <div class="hand-cards" id="my-hand-cards"></div>
-        </div>
 
-        <!-- Other Players (small squares at bottom in play order) -->
-        <div class="player-section next-1" id="next-player-1">
-            <div class="turn-order-indicator">2</div>
-            <div class="player-header">
-                <div class="player-name">Neste spiller</div>
-                <div class="team-indicator hidden" id="next-team-indicator-1"></div>
-                <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+            <div class="player-section" id="player-1">
+                <div class="player-header">
+                    <div class="player-name">Spiller 2</div>
+                    <div class="team-indicator hidden" id="team-indicator-1"></div>
+                    <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+                </div>
+                <div class="hand-cards" data-player="1"></div>
             </div>
-            <div class="hand-cards">
-                <div class="card-count-display">13</div>
-                <div class="card-count-label">kort</div>
-            </div>
-            <div class="flow-arrow">→</div>
-        </div>
 
-        <div class="player-section next-2" id="next-player-2">
-            <div class="turn-order-indicator">3</div>
-            <div class="player-header">
-                <div class="player-name">Spiller 2</div>
-                <div class="team-indicator hidden" id="next-team-indicator-2"></div>
-                <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+            <div class="player-section" id="player-2">
+                <div class="player-header">
+                    <div class="player-name">Spiller 3</div>
+                    <div class="team-indicator hidden" id="team-indicator-2"></div>
+                    <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+                </div>
+                <div class="hand-cards" data-player="2"></div>
             </div>
-            <div class="hand-cards">
-                <div class="card-count-display">13</div>
-                <div class="card-count-label">kort</div>
-            </div>
-            <div class="flow-arrow">→</div>
-        </div>
 
-        <div class="player-section next-3" id="next-player-3">
-            <div class="turn-order-indicator">4</div>
-            <div class="player-header">
-                <div class="player-name">Spiller 3</div>
-                <div class="team-indicator hidden" id="next-team-indicator-3"></div>
-                <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
-            </div>
-            <div class="hand-cards">
-                <div class="card-count-display">13</div>
-                <div class="card-count-label">kort</div>
+            <div class="player-section" id="player-3">
+                <div class="player-header">
+                    <div class="player-name">Spiller 4</div>
+                    <div class="team-indicator hidden" id="team-indicator-3"></div>
+                    <div class="player-stats">Stikk: <span class="tricks">0</span> | Poeng: <span class="score">0</span></div>
+                </div>
+                <div class="hand-cards" data-player="3"></div>
             </div>
         </div>
-    </div>
 
         <!-- Round End -->
         <div class="controls hidden" id="round-end-controls">
