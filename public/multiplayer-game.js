@@ -221,6 +221,7 @@ class MultiplayerGameClient {
             'bidding': 'Budgivning',
             'partner_selection': 'Velg partner',
             'playing': 'Spilling',
+            'trick_complete': 'Stikk ferdig',  // Add this line
             'round_end': 'Runde ferdig'
         };
         indicator.textContent = phaseNames[this.gameState.phase] || this.gameState.phase;
@@ -438,11 +439,67 @@ class MultiplayerGameClient {
 
     updateTrickArea() {
         const playedCardsContainer = document.getElementById('played-cards');
+        const trickArea = document.querySelector('.trick-area');
+        
+        // Remove existing countdown if any
+        const existingCountdown = document.querySelector('.trick-countdown');
+        if (existingCountdown) {
+            existingCountdown.remove();
+        }
+        
+        // Handle trick completion phase
+        if (this.gameState.phase === 'trick_complete') {
+            trickArea.classList.add('complete');
+            
+            // Show winner message
+            let winnerMessage = document.querySelector('.trick-winner-message');
+            if (!winnerMessage) {
+                winnerMessage = document.createElement('div');
+                winnerMessage.className = 'trick-winner-message';
+                trickArea.insertBefore(winnerMessage, playedCardsContainer);
+            }
+            
+            const winnerName = this.gameState.trickWinner?.playerName || 'Ukjent';
+            winnerMessage.textContent = `${winnerName} vant stikket!`;
+            
+            // Add countdown timer
+            const countdown = document.createElement('div');
+            countdown.className = 'trick-countdown';
+            countdown.textContent = '5';
+            trickArea.appendChild(countdown);
+            
+            let timeLeft = 5;
+            const countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdown.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    countdown.remove();
+                }
+            }, 1000);
+            
+        } else {
+            trickArea.classList.remove('complete');
+            // Remove winner message
+            const winnerMessage = document.querySelector('.trick-winner-message');
+            if (winnerMessage) {
+                winnerMessage.remove();
+            }
+        }
+
+        // Clear and rebuild played cards
         playedCardsContainer.innerHTML = '';
 
-        this.gameState.currentTrick.forEach(play => {
+        this.gameState.currentTrick.forEach((play, index) => {
             const playedCardDiv = document.createElement('div');
             playedCardDiv.className = 'played-card';
+            
+            // Highlight winning card during trick completion
+            if (this.gameState.phase === 'trick_complete' && 
+                this.gameState.trickWinner && 
+                play.playerId === this.gameState.trickWinner.playerId) {
+                playedCardDiv.classList.add('winner');
+            }
 
             const cardElement = this.createCardElement(play.card, null, false);
             const playerNameDiv = document.createElement('div');
@@ -451,6 +508,9 @@ class MultiplayerGameClient {
             playedCardDiv.appendChild(playerNameDiv);
             playedCardDiv.appendChild(cardElement);
             playedCardsContainer.appendChild(playedCardDiv);
+            
+            // Stagger the card appearance animations
+            playedCardDiv.style.animationDelay = `${index * 0.1}s`;
         });
     }
 

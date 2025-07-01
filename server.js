@@ -33,6 +33,7 @@ class MultiplayerGame {
         this.gameCode = gameCode;
         this.players = [];
         this.gameStarted = false;
+        this.trickWinner = null;
         
         // Game state (copied from original Game class)
         this.currentRound = 1;
@@ -414,16 +415,30 @@ class MultiplayerGame {
         // Set next starter
         this.currentPlayer = winnerPlay.playerId;
 
-        // Reset for next trick
-        this.currentTrick = [];
-        this.leadSuit = null;
-
-        // Check if round is complete
-        if (Object.values(this.hands).every(hand => hand.length === 0)) {
-            this.completeRound();
-        }
-        
+        // Show trick result for 5 seconds before clearing
+        this.phase = 'trick_complete';
+        this.trickWinner = winnerPlay;
         this.stateSequence++;
+        
+        // Broadcast the trick completion state
+        this.broadcastGameState();
+
+        // Wait 5 seconds before clearing the trick
+        setTimeout(() => {
+            // Reset for next trick
+            this.currentTrick = [];
+            this.leadSuit = null;
+            this.phase = 'playing';
+            this.trickWinner = null;
+
+            // Check if round is complete
+            if (Object.values(this.hands).every(hand => hand.length === 0)) {
+                this.completeRound();
+            } else {
+                this.stateSequence++;
+                this.broadcastGameState();
+            }
+        }, 5000); // 5 second delay
     }
 
     completeRound() {
